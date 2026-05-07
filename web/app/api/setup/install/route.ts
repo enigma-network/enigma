@@ -87,10 +87,10 @@ fi
 ${nvidiaPart}
 
 echo "[3/4] enigma-node Image wird geladen..."
-if docker pull ghcr.io/enigma-network/enigma-node:latest 2>/dev/null; then
+if docker pull ghcr.io/vbeinlich/enigma-node:latest 2>/dev/null; then
   echo "Image geladen ✓"
 elif [ -f "Dockerfile" ]; then
-  docker build -t ghcr.io/enigma-network/enigma-node:latest . && echo "Image gebaut ✓"
+  docker build -t ghcr.io/vbeinlich/enigma-node:latest . && echo "Image gebaut ✓"
 else
   echo "FEHLER: enigma/node:latest nicht gefunden." && exit 1
 fi
@@ -153,10 +153,10 @@ fi
 echo "[2/4] macOS — kein NVIDIA Toolkit benötigt ✓"
 
 echo "[3/4] enigma-node Image wird geladen..."
-if docker pull ghcr.io/enigma-network/enigma-node:latest 2>/dev/null; then
+if docker pull ghcr.io/vbeinlich/enigma-node:latest 2>/dev/null; then
   echo "Image geladen ✓"
 elif [ -f "Dockerfile" ]; then
-  docker build -t ghcr.io/enigma-network/enigma-node:latest . && echo "Image gebaut ✓"
+  docker build -t ghcr.io/vbeinlich/enigma-node:latest . && echo "Image gebaut ✓"
 else
   echo "FEHLER: enigma/node:latest nicht gefunden." && exit 1
 fi
@@ -229,11 +229,11 @@ if ($LASTEXITCODE -ne 0) {
 ${nvidiaNotes}
 
 Write-Host "[3/4] enigma-node Image wird geladen..."
-docker pull ghcr.io/enigma-network/enigma-node:latest
+docker pull ghcr.io/vbeinlich/enigma-node:latest
 if ($LASTEXITCODE -ne 0) {
   if (Test-Path "Dockerfile") {
     Write-Host "Baue Image aus Dockerfile..."
-    docker build -t ghcr.io/enigma-network/enigma-node:latest .
+    docker build -t ghcr.io/vbeinlich/enigma-node:latest .
   } else {
     Write-Host "FEHLER: enigma/node:latest nicht gefunden und kein Dockerfile vorhanden." -ForegroundColor Red
     exit 1
