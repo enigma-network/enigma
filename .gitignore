@@ -1,0 +1,10 @@
+bin/
+*.db
+.DS_Store
+web/node_modules/
+web/.next/
+web/web.db
+web/.env.local
+*.log
+web/.env
+.superpowers/
