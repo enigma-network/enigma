@@ -1,6 +1,7 @@
 services:
   server:
     image: ghcr.io/enigma-network/enigma-server:latest
+    container_name: enigma-server
     ports:
       - "8080:8080"
     volumes:
@@ -9,6 +10,7 @@ services:
 
   web:
     image: ghcr.io/enigma-network/enigma-web:latest
+    container_name: enigma-web
     ports:
       - "3000:3000"
     volumes:
