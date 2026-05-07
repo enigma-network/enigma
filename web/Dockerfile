@@ -37,12 +37,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-RUN addgroup --system --gid 1001 nodejs \
- && adduser --system --uid 1001 nextjs \
- && mkdir -p /data \
- && chown -R nextjs:nodejs /data /entrypoint.sh
+RUN mkdir -p /data
 
-USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
