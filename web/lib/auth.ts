@@ -6,6 +6,7 @@ import { prisma } from './prisma'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  trustHost: true,
   providers: [
     Google({ allowDangerousEmailAccountLinking: true }),
     GitHub({ allowDangerousEmailAccountLinking: true }),
