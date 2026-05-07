@@ -31,11 +31,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 
-# Prisma runtime + CLI (needed for migrate deploy at startup)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+# Full node_modules needed for prisma migrate deploy at startup
+COPY --from=builder /app/node_modules ./node_modules
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -43,11 +40,10 @@ RUN chmod +x /entrypoint.sh
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs \
  && mkdir -p /data \
- && chown nextjs:nodejs /data
+ && chown -R nextjs:nodejs /data /entrypoint.sh
 
 USER nextjs
 EXPOSE 3000
-
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV DATABASE_URL=file:/data/web.db
