@@ -65,7 +65,7 @@ export async function GET(req: Request) {
     lines.push(``)
 
     lines.push(`  ${nodeService}:`)
-    lines.push(`    image: ghcr.io/vbeinlich/enigma-node:latest`)
+    lines.push(`    image: ghcr.io/enigma-network/enigma-node:latest`)
     lines.push(`    command:`)
     lines.push(`      - "-server"`)
     lines.push(`      - "${serverUrl}"`)
