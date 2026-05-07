@@ -8,9 +8,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Placeholder env vars needed at build time only
 ENV DATABASE_URL=file:/tmp/build.db
-ENV NEXTAUTH_SECRET=build-placeholder-not-used-at-runtime
+ENV NEXTAUTH_SECRET=build-placeholder
 ENV NEXTAUTH_URL=http://localhost:3000
 ENV AUTH_GOOGLE_ID=placeholder
 ENV AUTH_GOOGLE_SECRET=placeholder
@@ -27,11 +26,19 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Standalone Next.js output
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+
+# Prisma runtime + CLI (needed for migrate deploy at startup)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs \
@@ -45,4 +52,4 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV DATABASE_URL=file:/data/web.db
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["/entrypoint.sh"]
