@@ -39,8 +39,9 @@ RUN chmod +x /entrypoint.sh
 
 RUN mkdir -p /data
 
-EXPOSE 3000
-ENV PORT=3000
+# Azure App Service uses port 80 by default — WEBSITES_PORT can override but is unreliable
+EXPOSE 80
+ENV PORT=80
 ENV HOSTNAME=0.0.0.0
 ENV DATABASE_URL=file:/data/web.db
 
