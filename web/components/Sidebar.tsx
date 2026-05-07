@@ -3,17 +3,28 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const links = [
-  { href: '/dashboard', label: 'Overview', icon: '📊' },
-  { href: '/chat', label: 'Chat', icon: '💬' },
-  { href: '/dashboard/setup', label: 'Setup', icon: '⚙️' },
-  { href: '/dashboard/nodes', label: 'Nodes', icon: '🖥️' },
-  { href: '/dashboard/jobs', label: 'Jobs', icon: '⚡' },
-  { href: '/dashboard/ledger', label: 'Ledger', icon: '💰' },
-  { href: '/dashboard/logs', label: 'Logs', icon: '📄' },
+  { href: '/dashboard', label: 'Overview', icon: '📊', roles: null },
+  { href: '/chat', label: 'Chat', icon: '💬', roles: null },
+  { href: '/dashboard/setup', label: 'Setup', icon: '⚙️', roles: ['PROVIDER', 'ADMIN'] },
+  { href: '/dashboard/nodes', label: 'Nodes', icon: '🖥️', roles: null },
+  { href: '/dashboard/jobs', label: 'Jobs', icon: '⚡', roles: null },
+  { href: '/dashboard/ledger', label: 'Ledger', icon: '💰', roles: null },
+  { href: '/dashboard/logs', label: 'Logs', icon: '📄', roles: null },
 ]
 
-export function Sidebar({ userEmail }: { userEmail?: string | null }) {
+const ROLE_COLORS: Record<string, string> = {
+  ADMIN:    'bg-purple-900 text-purple-300',
+  PROVIDER: 'bg-green-900 text-green-300',
+  USER:     'bg-blue-900 text-blue-300',
+}
+
+export function Sidebar({ userEmail, userRole }: { userEmail?: string | null; userRole?: string | null }) {
   const pathname = usePathname()
+  const role = userRole ?? 'USER'
+
+  const visibleLinks = links.filter(link =>
+    link.roles === null || link.roles.includes(role)
+  )
 
   return (
     <aside
@@ -25,7 +36,7 @@ export function Sidebar({ userEmail }: { userEmail?: string | null }) {
       </div>
 
       <nav className="flex-1 p-2">
-        {links.map((link) => {
+        {visibleLinks.map((link) => {
           const isActive =
             pathname === link.href ||
             (link.href !== '/dashboard' && pathname.startsWith(link.href))
@@ -46,7 +57,10 @@ export function Sidebar({ userEmail }: { userEmail?: string | null }) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-800 space-y-1">
+      <div className="p-4 border-t border-slate-800 space-y-2">
+        <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_COLORS[role] ?? ROLE_COLORS.USER}`}>
+          {role}
+        </span>
         <Link href="/profile" className="text-slate-500 hover:text-slate-300 text-xs truncate block">
           {userEmail ?? 'Account'}
         </Link>
