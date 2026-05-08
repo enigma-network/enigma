@@ -14,9 +14,17 @@ import (
 
 func main() {
 	dbPath := flag.String("db", "enigma.db", "SQLite database path")
-	addr := flag.String("addr", ":8080", "Listen address")
+	addr := flag.String("addr", "", "Listen address (default :8080, overridden by PORT env var)")
 	logPath := flag.String("log", "enigma.log", "JSON log file path")
 	flag.Parse()
+
+	if *addr == "" {
+		if p := os.Getenv("PORT"); p != "" {
+			*addr = ":" + p
+		} else {
+			*addr = ":8080"
+		}
+	}
 
 	logFile, err := os.OpenFile(*logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
