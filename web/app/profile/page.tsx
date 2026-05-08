@@ -1,6 +1,7 @@
 import { auth, signOut } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import { ClaimButton } from '@/components/ClaimButton'
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -48,7 +49,10 @@ export default async function ProfilePage() {
           </div>
           <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-between">
             <span className="text-slate-400 text-sm">ENI-Balance</span>
-            <span className="text-yellow-400 font-bold text-xl">{balance.toFixed(2)} ENI</span>
+            <div className="flex items-center gap-3">
+              <span className="text-yellow-400 font-bold text-xl">{balance.toFixed(3)} ENI</span>
+              <ClaimButton />
+            </div>
           </div>
         </div>
 

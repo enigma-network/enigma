@@ -5,6 +5,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   duration_ms?: number
+  eni_cost?: number
 }
 
 export default function ChatPage() {
@@ -46,7 +47,7 @@ export default function ChatPage() {
       if (!res.ok) {
         setError(data.error ?? 'Unbekannter Fehler')
       } else {
-        setMessages(m => [...m, { role: 'assistant', content: data.result, duration_ms: data.duration_ms }])
+        setMessages(m => [...m, { role: 'assistant', content: data.result, duration_ms: data.duration_ms, eni_cost: data.eni_cost }])
       }
     } catch {
       setError('Verbindungsfehler')
@@ -84,7 +85,7 @@ export default function ChatPage() {
             ) : (
               <p className="text-sm">Stelle eine Frage an das Enigma-Netzwerk</p>
             )}
-            <p className="text-xs mt-2 text-slate-700">Kosten: 1.0 ENI pro Anfrage</p>
+            <p className="text-xs mt-2 text-slate-700">Kosten: 0.01 ENI × Node-Score</p>
           </div>
         )}
         {messages.map((msg, i) => (
@@ -96,7 +97,7 @@ export default function ChatPage() {
             }`}>
               <p className="whitespace-pre-wrap">{msg.content}</p>
               {msg.duration_ms && (
-                <p className="text-xs text-slate-500 mt-2">{msg.duration_ms}ms · -1.0 ENI</p>
+                <p className="text-xs text-slate-500 mt-2">{msg.duration_ms}ms · -{msg.eni_cost?.toFixed(3) ?? '?'} ENI</p>
               )}
             </div>
           </div>

@@ -4,10 +4,29 @@ import { NextResponse } from 'next/server'
 
 const ENIGMA = process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080'
 const ADMIN_TOKEN = process.env.ENIGMA_ADMIN_TOKEN ?? ''
-const ENI_COST = 1.0
+const ENI_RATE = 0.01
+const ENI_MIN = 0.001
 
 function enigmaHeaders(): HeadersInit {
   return ADMIN_TOKEN ? { 'Content-Type': 'application/json', 'X-Admin-Token': ADMIN_TOKEN } : { 'Content-Type': 'application/json' }
+}
+
+function nodeScore(n: { benchmark_score: number; avg_rating: number; reliability: number }): number {
+  return n.benchmark_score * 0.4 + n.avg_rating * 0.4 + n.reliability * 0.2
+}
+
+async function fetchJobCost(assignedNodeId: string): Promise<number> {
+  try {
+    const headers = ADMIN_TOKEN ? { 'X-Admin-Token': ADMIN_TOKEN } : {}
+    const res = await fetch(`${ENIGMA}/api/v1/admin/nodes`, { headers })
+    if (!res.ok) return ENI_MIN
+    const nodes = await res.json()
+    const node = nodes.find((n: { id: string }) => n.id === assignedNodeId)
+    if (!node) return ENI_MIN
+    return Math.max(ENI_MIN, ENI_RATE * nodeScore(node))
+  } catch {
+    return ENI_MIN
+  }
 }
 
 export async function POST(req: Request) {
@@ -17,14 +36,14 @@ export async function POST(req: Request) {
   const { prompt, model } = await req.json()
   if (!prompt?.trim()) return NextResponse.json({ error: 'Prompt erforderlich' }, { status: 400 })
 
-  // Check ENI balance
+  // Check ENI balance (minimum cost)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: { transactions: true },
   })
   const balance = user?.transactions.reduce((s, t) => s + t.amount, 0) ?? 0
-  if (balance < ENI_COST) {
-    return NextResponse.json({ error: `Nicht genug ENI (${balance.toFixed(2)} / ${ENI_COST} benötigt)` }, { status: 402 })
+  if (balance < ENI_MIN) {
+    return NextResponse.json({ error: `Nicht genug ENI (${balance.toFixed(3)} verfügbar)` }, { status: 402 })
   }
 
   // Submit job to enigma-server
@@ -48,11 +67,11 @@ export async function POST(req: Request) {
 
     const job = await statusRes.json()
     if (job.Status === 'done') {
-      // Deduct ENI
+      const cost = await fetchJobCost(job.AssignedNode)
       await prisma.walletTransaction.create({
-        data: { userId: session.user.id, amount: -ENI_COST, reason: 'job_payment', jobId: job_id },
+        data: { userId: session.user.id, amount: -cost, reason: 'job_payment', jobId: job_id },
       })
-      return NextResponse.json({ result: job.Result, job_id, duration_ms: job.DurationMs })
+      return NextResponse.json({ result: job.Result, job_id, duration_ms: job.DurationMs, eni_cost: cost })
     }
     if (job.Status === 'failed') {
       return NextResponse.json({ error: 'Job fehlgeschlagen' }, { status: 500 })
