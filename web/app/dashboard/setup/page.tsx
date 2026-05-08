@@ -6,9 +6,7 @@ export default function SetupPage() {
   const [gpuId, setGpuId] = useState('rtx3060')
   const [mode, setMode] = useState<'depth' | 'breadth'>('depth')
   const [selectedModels, setSelectedModels] = useState<string[]>(['gemma3:12b'])
-  const [serverUrl, setServerUrl] = useState(
-    process.env.NEXT_PUBLIC_ENIGMA_NODE_SERVER_URL ?? 'http://localhost:8080'
-  )
+  const [serverUrl, setServerUrl] = useState('http://localhost:8080')
   const [os, setOs] = useState<'linux' | 'mac' | 'windows'>('linux')
   const [downloading, setDownloading] = useState(false)
   const [nodes, setNodes] = useState<{ id: string; address: string; status: string; models: string }[]>([])
@@ -17,6 +15,14 @@ export default function SetupPage() {
   const gpu = GPU_TIERS.find(g => g.id === gpuId) ?? GPU_TIERS[0]
   const usedVram = totalVram(selectedModels)
   const vramOk = gpu.vram === 0 || usedVram <= gpu.vram
+
+  // Fetch server URL from runtime config on mount
+  useEffect(() => {
+    fetch('/api/setup/config')
+      .then(r => r.json())
+      .then(data => { if (data.nodeServerUrl) setServerUrl(data.nodeServerUrl) })
+      .catch(() => {})
+  }, [])
 
   // Fetch node status on mount
   useEffect(() => {

@@ -155,7 +155,12 @@ fi
 
 echo "[4/4] Container starten..."
 docker compose up -d
-echo "Warte auf Ollama (15s)..."; sleep 15
+${ollamaServices.map(svc => `echo "Warte auf ${svc}..."
+for i in $(seq 1 90); do
+  docker compose exec -T ${svc} ollama list &>/dev/null 2>&1 && echo "${svc} bereit ✓" && break
+  [ $i -eq 90 ] && echo "FEHLER: ${svc} nicht bereit nach 3 Minuten" && exit 1
+  sleep 2
+done`).join('\n')}
 ${pullCmds}
 
 echo ""
@@ -230,7 +235,12 @@ fi
 
 echo "[4/4] Container starten..."
 docker compose up -d
-echo "Warte auf Ollama (15s)..."; sleep 15
+${ollamaServices.map(svc => `echo "Warte auf ${svc}..."
+for i in $(seq 1 90); do
+  docker compose exec -T ${svc} ollama list &>/dev/null 2>&1 && echo "${svc} bereit ✓" && break
+  [ $i -eq 90 ] && echo "FEHLER: ${svc} nicht bereit nach 3 Minuten" && exit 1
+  sleep 2
+done`).join('\n')}
 ${pullCmds}
 
 echo ""
@@ -313,8 +323,14 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "Warte auf Ollama Start (15 Sekunden)..."
-Start-Sleep -Seconds 15
+${ollamaServices.map(svc => `Write-Host "Warte auf ${svc}..."
+$ready = $false
+for ($i = 1; $i -le 90; $i++) {
+    docker compose exec ${svc} ollama list 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) { Write-Host "${svc} bereit." -ForegroundColor Green; $ready = $true; break }
+    Start-Sleep -Seconds 2
+}
+if (-not $ready) { Write-Host "FEHLER: ${svc} nicht bereit nach 3 Minuten." -ForegroundColor Red; exit 1 }`).join('\n')}
 
 ${pullCmds}
 
