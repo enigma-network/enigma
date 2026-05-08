@@ -6,7 +6,9 @@ export default function SetupPage() {
   const [gpuId, setGpuId] = useState('rtx3060')
   const [mode, setMode] = useState<'depth' | 'breadth'>('depth')
   const [selectedModels, setSelectedModels] = useState<string[]>(['gemma3:12b'])
-  const [serverUrl, setServerUrl] = useState('http://localhost:8080')
+  const [serverUrl, setServerUrl] = useState(
+    process.env.NEXT_PUBLIC_ENIGMA_NODE_SERVER_URL ?? 'http://localhost:8080'
+  )
   const [os, setOs] = useState<'linux' | 'mac' | 'windows'>('linux')
   const [downloading, setDownloading] = useState(false)
   const [nodes, setNodes] = useState<{ id: string; address: string; status: string; models: string }[]>([])

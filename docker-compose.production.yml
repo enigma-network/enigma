@@ -26,6 +26,7 @@ services:
       - ENIGMA_SERVER_URL=http://server:8080
       - ENIGMA_LOG_PATH=/data/enigma.log
       - ENIGMA_ADMIN_TOKEN=${ENIGMA_ADMIN_TOKEN:-}
+      - NEXT_PUBLIC_ENIGMA_NODE_SERVER_URL=https://server.enigmanet.org
     depends_on:
       - server
     restart: unless-stopped

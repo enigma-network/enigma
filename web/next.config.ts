@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   env: {
     ENIGMA_SERVER_URL: process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080',
+    NEXT_PUBLIC_ENIGMA_NODE_SERVER_URL: process.env.NEXT_PUBLIC_ENIGMA_NODE_SERVER_URL ?? 'http://localhost:8080',
   },
   async redirects() {
     return [
