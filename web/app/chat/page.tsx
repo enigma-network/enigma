@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -10,9 +10,23 @@ interface Message {
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [model, setModel] = useState('gemma3:12b')
+  const [model, setModel] = useState('')
+  const [models, setModels] = useState<string[]>([])
+  const [modelsLoading, setModelsLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/chat/models')
+      .then(r => r.json())
+      .then(data => {
+        const list: string[] = data.models ?? []
+        setModels(list)
+        if (list.length > 0) setModel(list[0])
+      })
+      .catch(() => {})
+      .finally(() => setModelsLoading(false))
+  }, [])
 
   async function send() {
     if (!input.trim() || loading) return
@@ -50,12 +64,12 @@ export default function ChatPage() {
         <select
           value={model}
           onChange={e => setModel(e.target.value)}
-          className="ml-auto bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1"
+          disabled={modelsLoading || models.length === 0}
+          className="ml-auto bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1 disabled:opacity-50"
         >
-          <option value="gemma3:12b">gemma3:12b</option>
-          <option value="gemma3:4b">gemma3:4b</option>
-          <option value="phi3:mini">phi3:mini</option>
-          <option value="">Bestes verfügbares</option>
+          {modelsLoading && <option>Lade Modelle...</option>}
+          {!modelsLoading && models.length === 0 && <option value="">Keine Modelle verfügbar</option>}
+          {models.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
         <a href="/profile" className="text-slate-500 hover:text-slate-300 text-xs">Balance</a>
       </div>
@@ -65,7 +79,11 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <div className="text-center text-slate-600 mt-16">
             <p className="text-4xl mb-4">🤖</p>
-            <p className="text-sm">Stelle eine Frage an das Enigma-Netzwerk</p>
+            {!modelsLoading && models.length === 0 ? (
+              <p className="text-sm text-red-400">Keine Nodes online — kein Modell verfügbar</p>
+            ) : (
+              <p className="text-sm">Stelle eine Frage an das Enigma-Netzwerk</p>
+            )}
             <p className="text-xs mt-2 text-slate-700">Kosten: 1.0 ENI pro Anfrage</p>
           </div>
         )}
@@ -115,7 +133,7 @@ export default function ChatPage() {
           />
           <button
             onClick={send}
-            disabled={loading || !input.trim()}
+            disabled={loading || !input.trim() || models.length === 0}
             className="bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-5 rounded-xl transition-colors"
           >
             {loading ? '⏳' : '→'}
