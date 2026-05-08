@@ -1,10 +1,10 @@
 import { StatCard } from '@/components/StatCard'
 import { fetchStats, fetchNodes, fetchJobs, EnigmaNode, EnigmaJob } from '@/lib/enigma'
 import { prisma } from '@/lib/prisma'
-import pkg from '../../package.json'
 
 export const revalidate = 0
 
+const APP_VERSION = process.env.APP_VERSION ?? '?'
 const SERVER_URL = process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080'
 
 function parseModels(models: string): string {
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-white">Overview</h1>
-        <span className="text-slate-500 text-xs">v{pkg.version}</span>
+        <span className="text-slate-500 text-xs">v{APP_VERSION}</span>
       </div>
 
       {/* Server Status */}

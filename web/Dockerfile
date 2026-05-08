@@ -20,7 +20,9 @@ ENV ENIGMA_LOG_PATH=/data/enigma.log
 ENV ENIGMA_ADMIN_TOKEN=
 
 RUN npx prisma generate
-RUN npm run build
+RUN APP_VERSION=$(node -e "process.stdout.write(require('./package.json').version)") && \
+    echo "APP_VERSION=$APP_VERSION" && \
+    npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -44,5 +46,7 @@ EXPOSE 80
 ENV PORT=80
 ENV HOSTNAME=0.0.0.0
 ENV DATABASE_URL=file:/data/web.db
+ARG APP_VERSION=unknown
+ENV APP_VERSION=$APP_VERSION
 
 ENTRYPOINT ["/entrypoint.sh"]
