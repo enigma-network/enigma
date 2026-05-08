@@ -154,6 +154,13 @@ else
 fi
 
 echo "[4/4] Container starten..."
+${hasNvidia ? `if ! docker info 2>/dev/null | grep -qi "nvidia"; then
+  echo ""
+  echo "✘ FEHLER: NVIDIA Docker Runtime nicht verfügbar."
+  echo "  Dieser Rechner hat kein NVIDIA GPU oder das NVIDIA Container Toolkit ist nicht installiert."
+  echo "  Lade das Install-Script erneut herunter und wähle 'CPU' als GPU-Option."
+  exit 1
+fi` : ''}
 docker compose up -d
 ${ollamaServices.map(svc => `echo "Warte auf ${svc}..."
 for i in $(seq 1 90); do
@@ -317,6 +324,14 @@ Write-Host "[3/4] Image bereit." -ForegroundColor Green
 
 # [4/4] Container starten
 Write-Host "[4/4] Container werden gestartet..."
+${hasNvidia ? `$dockerInfo = docker info 2>&1
+if ($dockerInfo -notmatch "nvidia") {
+    Write-Host ""
+    Write-Host "✘ FEHLER: NVIDIA Docker Runtime nicht verfügbar." -ForegroundColor Red
+    Write-Host "  Dieser Rechner hat kein NVIDIA GPU oder das NVIDIA Container Toolkit ist nicht installiert." -ForegroundColor Red
+    Write-Host "  Lade das Install-Script erneut herunter und waehle 'CPU' als GPU-Option." -ForegroundColor Yellow
+    exit 1
+}` : ''}
 docker compose up -d
 if ($LASTEXITCODE -ne 0) {
     Write-Host "FEHLER: docker compose up fehlgeschlagen." -ForegroundColor Red
