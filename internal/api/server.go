@@ -32,6 +32,7 @@ func NewServer(db *sql.DB) *Server {
 	ratingsH := &ratingsHandler{db: db, jobs: jobs, registry: reg}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 	mux.HandleFunc("POST /api/v1/nodes/register", nodesH.register)
 	mux.HandleFunc("PUT /api/v1/nodes/{id}/heartbeat", nodesH.heartbeat)
 	mux.HandleFunc("DELETE /api/v1/nodes/{id}", nodesH.deregister)
