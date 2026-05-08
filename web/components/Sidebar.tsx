@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 
 const links = [
   { href: '/dashboard', label: 'Overview', icon: '📊', roles: null },
@@ -20,7 +21,6 @@ const ROLE_COLORS: Record<string, string> = {
 
 export function Sidebar({ userEmail, userRole }: { userEmail?: string | null; userRole?: string | null }) {
   const pathname = usePathname()
-  const router = useRouter()
   const role = userRole ?? 'USER'
   const isLoggedIn = !!userEmail
 
@@ -69,11 +69,7 @@ export function Sidebar({ userEmail, userRole }: { userEmail?: string | null; us
               {userEmail}
             </Link>
             <button
-              onClick={async () => {
-                await fetch('/api/auth/signout', { method: 'POST' })
-                router.push('/login')
-                router.refresh()
-              }}
+              onClick={() => signOut({ callbackUrl: '/login' })}
               className="text-red-400 hover:text-red-300 text-xs w-full text-left"
             >
               Abmelden
