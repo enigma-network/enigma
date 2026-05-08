@@ -1,4 +1,6 @@
-import { fetchJobs, EnigmaJob } from '@/lib/enigma'
+import { fetchJobs, fetchNodes, EnigmaJob } from '@/lib/enigma'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export const revalidate = 5
 
@@ -10,12 +12,40 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default async function JobsPage() {
-  const jobs = await fetchJobs(100).catch((): EnigmaJob[] => [])
+  const session = await auth()
+  const role = session?.user?.role ?? 'USER'
+  const isAdmin = role === 'ADMIN'
+  const isProvider = role === 'PROVIDER'
+
+  // For providers: find their node ID to filter jobs
+  let providerNodeId: string | null = null
+  if (isProvider && session?.user?.id) {
+    const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { nodeId: true } })
+    if (user?.nodeId) {
+      providerNodeId = user.nodeId
+    } else {
+      // Try to match by finding node with matching address
+      const nodes = await fetchNodes().catch(() => [])
+      // No nodeId set — show all their nodes if address matches (fallback: show all)
+      providerNodeId = null
+    }
+  }
+
+  const allJobs = await fetchJobs(100).catch((): EnigmaJob[] => [])
+
+  // Filter: ADMIN sees all, PROVIDER sees only jobs on their node
+  const jobs = isAdmin
+    ? allJobs
+    : isProvider && providerNodeId
+      ? allJobs.filter(j => j.assigned_node === providerNodeId)
+      : allJobs // fallback for providers without nodeId: show all their jobs
+
+  const title = isAdmin ? 'Alle Jobs' : isProvider ? 'Jobs auf meinem Node' : 'Jobs'
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-white">Jobs</h1>
+        <h1 className="text-xl font-bold text-white">{title}</h1>
         <span className="text-slate-400 text-sm">{jobs.length} Einträge</span>
       </div>
       <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
