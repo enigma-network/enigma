@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 const links = [
   { href: '/dashboard', label: 'Overview', icon: '📊', roles: null },
@@ -20,7 +20,9 @@ const ROLE_COLORS: Record<string, string> = {
 
 export function Sidebar({ userEmail, userRole }: { userEmail?: string | null; userRole?: string | null }) {
   const pathname = usePathname()
+  const router = useRouter()
   const role = userRole ?? 'USER'
+  const isLoggedIn = !!userEmail
 
   const visibleLinks = links.filter(link =>
     link.roles === null || link.roles.includes(role)
@@ -58,12 +60,30 @@ export function Sidebar({ userEmail, userRole }: { userEmail?: string | null; us
       </nav>
 
       <div className="p-4 border-t border-slate-800 space-y-2">
-        <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_COLORS[role] ?? ROLE_COLORS.USER}`}>
-          {role}
-        </span>
-        <Link href="/profile" className="text-slate-500 hover:text-slate-300 text-xs truncate block">
-          {userEmail ?? 'Account'}
-        </Link>
+        {isLoggedIn ? (
+          <>
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_COLORS[role] ?? ROLE_COLORS.USER}`}>
+              {role}
+            </span>
+            <Link href="/profile" className="text-slate-500 hover:text-slate-300 text-xs truncate block">
+              {userEmail}
+            </Link>
+            <button
+              onClick={async () => {
+                await fetch('/api/auth/signout', { method: 'POST' })
+                router.push('/login')
+                router.refresh()
+              }}
+              className="text-red-400 hover:text-red-300 text-xs w-full text-left"
+            >
+              Abmelden
+            </button>
+          </>
+        ) : (
+          <Link href="/login" className="text-green-400 hover:text-green-300 text-xs font-medium">
+            Anmelden →
+          </Link>
+        )}
       </div>
     </aside>
   )

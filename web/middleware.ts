@@ -6,7 +6,7 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth?.user
 
   const isProtected =
-    nextUrl.pathname.startsWith('/dashboard') ||
+    (nextUrl.pathname.startsWith('/dashboard') && nextUrl.pathname !== '/dashboard') ||
     nextUrl.pathname.startsWith('/profile') ||
     nextUrl.pathname === '/onboard'
 
