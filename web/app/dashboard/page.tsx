@@ -1,8 +1,11 @@
 import { StatCard } from '@/components/StatCard'
 import { fetchStats, fetchNodes, fetchJobs, EnigmaNode, EnigmaJob } from '@/lib/enigma'
 import { prisma } from '@/lib/prisma'
+import pkg from '../../package.json'
 
 export const revalidate = 0
+
+const SERVER_URL = process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080'
 
 function parseModels(models: string): string {
   try {
@@ -18,8 +21,9 @@ function nodeScore(node: EnigmaNode): number {
 }
 
 export default async function DashboardPage() {
+  let statsError: string | null = null
   const [stats, nodes, jobs, userCounts] = await Promise.all([
-    fetchStats().catch(() => null),
+    fetchStats().catch((e: Error) => { statsError = e.message; return null }),
     fetchNodes().catch((): EnigmaNode[] => []),
     fetchJobs(5).catch((): EnigmaJob[] => []),
     prisma.user.groupBy({ by: ['role'], _count: true }).catch(() => []),
@@ -27,6 +31,8 @@ export default async function DashboardPage() {
 
   const countByRole = (role: string) =>
     (userCounts as { role: string; _count: number }[]).find(r => r.role === role)?._count ?? 0
+
+  const serverOnline = stats !== null
 
   const statusColors: Record<string, string> = {
     done: 'bg-green-900 text-green-300',
@@ -37,8 +43,27 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-white mb-6">Overview</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold text-white">Overview</h1>
+        <span className="text-slate-500 text-xs">v{pkg.version}</span>
+      </div>
 
+      {/* Server Status */}
+      <div className={`rounded-xl border px-4 py-3 mb-6 flex items-center justify-between ${
+        serverOnline ? 'bg-green-900/20 border-green-800' : 'bg-red-900/20 border-red-800'
+      }`}>
+        <div className="flex items-center gap-3">
+          <span className={`text-xs font-medium ${serverOnline ? 'text-green-400' : 'text-red-400'}`}>
+            ● enigma-server {serverOnline ? 'online' : 'offline'}
+          </span>
+          <span className="text-slate-500 text-xs font-mono">{SERVER_URL}</span>
+        </div>
+        {statsError && (
+          <span className="text-red-400 text-xs">{statsError}</span>
+        )}
+      </div>
+
+      {/* Network stats */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         <StatCard label="Nodes Online" value={stats?.nodes_online ?? '–'} color="text-green-400" />
         <StatCard label="Jobs gesamt" value={stats?.jobs_total ?? '–'} color="text-blue-400" />
@@ -46,6 +71,7 @@ export default async function DashboardPage() {
         <StatCard label="Jobs/Stunde" value={stats?.jobs_last_hour ?? '–'} color="text-purple-400" />
       </div>
 
+      {/* User stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <StatCard label="User" value={countByRole('USER')} color="text-blue-300" />
         <StatCard label="Provider" value={countByRole('PROVIDER')} color="text-green-300" />
