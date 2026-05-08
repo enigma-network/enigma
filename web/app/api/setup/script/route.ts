@@ -37,7 +37,6 @@ export async function GET(req: Request) {
   lines.push('services:')
 
   const volumes: string[] = []
-  let port = 11434
   const seen: Record<string, number> = {}
 
   for (const modelId of modelIds) {
@@ -57,8 +56,7 @@ export async function GET(req: Request) {
       lines.push(`    environment:`)
       lines.push(`      - NVIDIA_VISIBLE_DEVICES=all`)
     }
-    lines.push(`    ports:`)
-    lines.push(`      - "${port}:11434"`)
+    lines.push(`    # No ports exposed — Ollama only accessible internally by enigma-node`)
     lines.push(`    volumes:`)
     lines.push(`      - ${volName}:/root/.ollama`)
     lines.push(`    restart: unless-stopped`)
@@ -77,8 +75,6 @@ export async function GET(req: Request) {
     lines.push(`      - ${ollamaService}`)
     lines.push(`    restart: unless-stopped`)
     lines.push(``)
-
-    port++
   }
 
   lines.push('volumes:')
