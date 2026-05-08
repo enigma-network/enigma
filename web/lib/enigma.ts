@@ -1,4 +1,8 @@
-const BASE = process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080'
+function normalizeBase(url: string): string {
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return 'https://' + url
+  return url
+}
+const BASE = normalizeBase(process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080')
 const ADMIN_TOKEN = process.env.ENIGMA_ADMIN_TOKEN ?? ''
 
 function headers(): HeadersInit {
