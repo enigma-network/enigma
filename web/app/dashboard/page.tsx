@@ -1,5 +1,6 @@
 import { StatCard } from '@/components/StatCard'
 import { fetchStats, fetchNodes, fetchJobs, EnigmaNode, EnigmaJob } from '@/lib/enigma'
+import { prisma } from '@/lib/prisma'
 
 export const revalidate = 0
 
@@ -17,11 +18,15 @@ function nodeScore(node: EnigmaNode): number {
 }
 
 export default async function DashboardPage() {
-  const [stats, nodes, jobs] = await Promise.all([
+  const [stats, nodes, jobs, userCounts] = await Promise.all([
     fetchStats().catch(() => null),
     fetchNodes().catch((): EnigmaNode[] => []),
     fetchJobs(5).catch((): EnigmaJob[] => []),
+    prisma.user.groupBy({ by: ['role'], _count: true }).catch(() => []),
   ])
+
+  const countByRole = (role: string) =>
+    (userCounts as { role: string; _count: number }[]).find(r => r.role === role)?._count ?? 0
 
   const statusColors: Record<string, string> = {
     done: 'bg-green-900 text-green-300',
@@ -34,11 +39,17 @@ export default async function DashboardPage() {
     <div>
       <h1 className="text-xl font-bold text-white mb-6">Overview</h1>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <StatCard label="Nodes Online" value={stats?.nodes_online ?? '–'} color="text-green-400" />
         <StatCard label="Jobs gesamt" value={stats?.jobs_total ?? '–'} color="text-blue-400" />
         <StatCard label="ENI vergeben" value={stats ? stats.eni_total.toFixed(1) : '–'} color="text-yellow-400" />
         <StatCard label="Jobs/Stunde" value={stats?.jobs_last_hour ?? '–'} color="text-purple-400" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <StatCard label="User" value={countByRole('USER')} color="text-blue-300" />
+        <StatCard label="Provider" value={countByRole('PROVIDER')} color="text-green-300" />
+        <StatCard label="Admins" value={countByRole('ADMIN')} color="text-purple-300" />
       </div>
 
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 mb-6">
