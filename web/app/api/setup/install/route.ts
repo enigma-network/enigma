@@ -182,68 +182,62 @@ function windowsScript({ modelIds, ollamaServices, serverUrl, gpu, hasNvidia }: 
   modelIds: string[], ollamaServices: string[], serverUrl: string, gpu: string, hasNvidia: boolean
 }) {
   const pullCmds = ollamaServices.map((svc, i) =>
-    `Write-Host "Lade Modell: ${modelIds[i]}..."\ndocker compose exec -T ${svc} ollama pull ${modelIds[i]}`
+    `Write-Host "Lade Modell: ${modelIds[i]}..."
+docker compose exec ${svc} ollama pull ${modelIds[i]}`
   ).join('\n')
 
-  const nvidiaNotes = hasNvidia ? `
-Write-Host "[2/4] NVIDIA GPU erkannt." -ForegroundColor Yellow
-Write-Host "      Fuer GPU-Unterstuetzung in Docker:"
-Write-Host "      1. Installiere NVIDIA-Treiber: https://www.nvidia.com/Download/index.aspx"
-Write-Host "      2. Aktiviere WSL2-Backend in Docker Desktop Settings"
-Write-Host "      3. NVIDIA Container Toolkit wird automatisch ueber WSL2 aktiviert"
-Write-Host "      docker-compose.yml enthaelt 'runtime: nvidia' - funktioniert nur mit WSL2-Backend"
-` : 'Write-Host "[2/4] CPU-Modus — kein NVIDIA Toolkit benoetigt" -ForegroundColor Green'
+  const nvidiaNotes = hasNvidia
+    ? `Write-Host "[2/4] NVIDIA GPU erkannt. GPU-Support via WSL2-Backend in Docker Desktop aktivieren." -ForegroundColor Yellow`
+    : `Write-Host "[2/4] CPU-Modus - kein NVIDIA Toolkit benoetigt." -ForegroundColor Green`
 
   const script = `# Enigma Node Installer (Windows PowerShell)
 # GPU: ${gpu} | Models: ${modelIds.join(', ')} | Server: ${serverUrl}
-# Ausfuehren mit: Set-ExecutionPolicy -Scope CurrentUser Bypass; ./install.ps1
+# Ausfuehren: powershell -ExecutionPolicy Bypass -File install.ps1
 
-$ErrorActionPreference = "Stop"
 Write-Host "=== Enigma Node Installer (Windows) ===" -ForegroundColor Cyan
-Write-Host "GPU: ${gpu} | Server: ${serverUrl}"
+Write-Host "GPU: ${gpu}"
+Write-Host "Server: ${serverUrl}"
 Write-Host ""
 
-# Docker Desktop pruefen
-Write-Host "[1/4] Docker Desktop wird geprueft..."
-try {
-  $dockerVersion = docker --version 2>&1
-  Write-Host "[1/4] Docker gefunden: $dockerVersion" -ForegroundColor Green
-} catch {
-  Write-Host "Docker Desktop nicht gefunden!" -ForegroundColor Red
-  Write-Host "Bitte installieren: https://www.docker.com/products/docker-desktop/"
-  Write-Host "Oder via winget: winget install Docker.DockerDesktop"
-  $install = Read-Host "Jetzt via winget installieren? (j/n)"
-  if ($install -eq "j") {
-    winget install Docker.DockerDesktop
-    Write-Host "Bitte Docker Desktop starten und Script erneut ausfuehren."
-  }
-  exit 1
+# [1/4] Docker pruefen
+Write-Host "[1/4] Docker wird geprueft..."
+$d = Get-Command docker -ErrorAction SilentlyContinue
+if (-not $d) {
+    Write-Host "Docker nicht gefunden. Bitte installieren:" -ForegroundColor Red
+    Write-Host "  https://www.docker.com/products/docker-desktop/"
+    Write-Host "  oder: winget install Docker.DockerDesktop"
+    exit 1
+}
+Write-Host "[1/4] Docker gefunden." -ForegroundColor Green
+
+# Docker laueft?
+$info = docker info 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Docker laeuft nicht. Bitte Docker Desktop starten." -ForegroundColor Red
+    exit 1
 }
 
-# Docker Engine pruefen
-$dockerRunning = docker info 2>&1
-if ($LASTEXITCODE -ne 0) {
-  Write-Host "Docker Desktop laeuft nicht — bitte starten und warten bis Docker bereit ist."
-  exit 1
-}
+# [2/4] GPU Info
 ${nvidiaNotes}
 
+# [3/4] Image laden
 Write-Host "[3/4] enigma-node Image wird geladen..."
 docker pull ghcr.io/enigma-network/enigma-node:latest
 if ($LASTEXITCODE -ne 0) {
-  if (Test-Path "Dockerfile") {
-    Write-Host "Baue Image aus Dockerfile..."
-    docker build -t ghcr.io/enigma-network/enigma-node:latest .
-  } else {
-    Write-Host "FEHLER: enigma/node:latest nicht gefunden und kein Dockerfile vorhanden." -ForegroundColor Red
+    Write-Host "FEHLER: Image konnte nicht geladen werden." -ForegroundColor Red
     exit 1
-  }
 }
-Write-Host "[3/4] Image bereit ✓" -ForegroundColor Green
+Write-Host "[3/4] Image bereit." -ForegroundColor Green
 
+# [4/4] Container starten
 Write-Host "[4/4] Container werden gestartet..."
 docker compose up -d
-Write-Host "Warte auf Ollama (15s)..."
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "FEHLER: docker compose up fehlgeschlagen." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Warte auf Ollama Start (15 Sekunden)..."
 Start-Sleep -Seconds 15
 
 ${pullCmds}
