@@ -2,6 +2,7 @@ import { auth, signOut } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { ClaimButton } from '@/components/ClaimButton'
+import { Logo } from '@/components/Logo'
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -22,7 +23,7 @@ export default async function ProfilePage() {
     <div className="min-h-screen p-8" style={{ background: '#0f172a' }}>
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-white">Mein Account</h1>
+          <Logo className="text-2xl" />
           <div className="flex gap-4">
             <a href="/dashboard" className="text-slate-400 hover:text-white text-sm">← Dashboard</a>
             <form action={async () => {

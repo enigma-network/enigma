@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
+import { Logo } from './Logo'
 
 const links = [
   { href: '/dashboard', label: 'Overview', icon: '📊', roles: null },
@@ -34,7 +35,7 @@ export function Sidebar({ userEmail, userRole }: { userEmail?: string | null; us
       className="flex flex-col"
     >
       <div className="p-4 border-b border-slate-800">
-        <span className="text-green-400 font-bold text-sm tracking-wider">ENIGMA</span>
+        <Logo className="text-xl" />
       </div>
 
       <nav className="flex-1 p-2">

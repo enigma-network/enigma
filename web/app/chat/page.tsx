@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Logo } from '@/components/Logo'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -61,7 +62,7 @@ export default function ChatPage() {
       {/* Header */}
       <div style={{ borderBottom: '1px solid #1e293b', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
         <a href="/dashboard" className="text-slate-400 hover:text-white text-sm">← Dashboard</a>
-        <span className="text-green-400 font-bold text-sm">ENIGMA Chat</span>
+        <Logo className="text-lg" />
         <select
           value={model}
           onChange={e => setModel(e.target.value)}
