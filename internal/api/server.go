@@ -20,8 +20,9 @@ type Server struct {
 func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger) *Server {
 	jobs := newJobStore(db)
 	rtr := router.NewScoredRouter(router.NewRoundRobinRouter())
+	hub := newStreamHub(nil)
 
-	jobsH := &jobsHandler{jobs: jobs, registry: reg, router: rtr, ledger: led}
+	jobsH := &jobsHandler{jobs: jobs, registry: reg, router: rtr, ledger: led, hub: hub}
 	nodesH := &nodesHandler{
 		registry: reg, ledger: led, jobs: jobs,
 		newBackend: func(backend types.Backend, address string) llm.LLMBackend {
@@ -36,7 +37,6 @@ func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger) *Serve
 	mux.HandleFunc("POST /api/v1/nodes/register", nodesH.register)
 	mux.HandleFunc("PUT /api/v1/nodes/{id}/heartbeat", nodesH.heartbeat)
 	mux.HandleFunc("DELETE /api/v1/nodes/{id}", nodesH.deregister)
-	hub := newStreamHub(nil)
 	mux.HandleFunc("GET /api/v1/nodes/{id}/stream", hub.serveStream)
 	mux.HandleFunc("GET /api/v1/nodes/{id}/jobs", nodesH.pollJob)
 	mux.HandleFunc("GET /api/v1/nodes/{id}/balance", nodesH.balance)

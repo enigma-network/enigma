@@ -16,6 +16,7 @@ type jobsHandler struct {
 	registry registry.RegistryStore
 	router   router.Router
 	ledger   ledger.Ledger
+	hub      *streamHub
 }
 
 func (h *jobsHandler) submit(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +50,10 @@ func (h *jobsHandler) submit(w http.ResponseWriter, r *http.Request) {
 	if err := h.jobs.create(r.Context(), job); err != nil {
 		http.Error(w, "failed to create job", http.StatusInternalServerError)
 		return
+	}
+
+	if h.hub != nil {
+		h.hub.send(job.AssignedNode, streamJob{ID: job.ID, Prompt: job.Prompt, Model: job.Model})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
