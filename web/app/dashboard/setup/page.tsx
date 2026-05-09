@@ -8,6 +8,7 @@ export default function SetupPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>(['gemma3:12b'])
   const [serverUrl, setServerUrl] = useState('http://localhost:8080')
   const [os, setOs] = useState<'linux' | 'mac' | 'windows'>('linux')
+  const [backend, setBackend] = useState<'ollama' | 'vllm' | 'lmstudio' | 'localai' | 'janai'>('ollama')
   const [downloading, setDownloading] = useState(false)
   const [nodes, setNodes] = useState<{ id: string; address: string; status: string; models: string }[]>([])
   const [nodesLoading, setNodesLoading] = useState(true)
@@ -63,7 +64,8 @@ export default function SetupPage() {
     models: selectedModels.join(','),
     server: serverUrl,
     os,
-  }).toString(), [gpuId, selectedModels, serverUrl, os])
+    backend,
+  }).toString(), [gpuId, selectedModels, serverUrl, os, backend])
 
   async function download(type: 'script' | 'install') {
     setDownloading(true)
@@ -133,6 +135,31 @@ export default function SetupPage() {
           )}
           {os === 'windows' && (
             <p className="text-blue-400 text-xs mt-3">💡 Windows: Script läuft als PowerShell (.ps1). NVIDIA GPU über WSL2-Backend in Docker Desktop.</p>
+          )}
+        </div>
+
+        {/* Step 2b: Backend */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mb-4">
+          <h2 className="text-white font-semibold mb-3">2b. Inference Backend</h2>
+          <p className="text-slate-400 text-xs mb-3">Welche Software läuft auf deinem Provider-PC?</p>
+          <select
+            value={backend}
+            onChange={e => setBackend(e.target.value as typeof backend)}
+            className="w-full bg-slate-900 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="ollama">Ollama (empfohlen — einfachste Installation)</option>
+            <option value="vllm">vLLM (NVIDIA — höchste Performance)</option>
+            <option value="lmstudio">LM Studio (Desktop App — Windows/Mac)</option>
+            <option value="localai">LocalAI (Docker — OpenAI-kompatibel)</option>
+            <option value="janai">Jan.ai (Desktop App — Open Source)</option>
+          </select>
+          {backend !== 'ollama' && (
+            <p className="text-yellow-400 text-xs mt-2">
+              ⚠️ {backend === 'vllm' && 'vLLM benötigt NVIDIA GPU und Python-Setup. Standard-Port: 8000.'}
+              {backend === 'lmstudio' && 'LM Studio muss laufen und Server-Modus aktiviert sein. Standard-Port: 1234.'}
+              {backend === 'localai' && 'LocalAI läuft als Docker Container. Standard-Port: 8080.'}
+              {backend === 'janai' && 'Jan.ai muss laufen und API-Server aktiviert sein. Standard-Port: 1337.'}
+            </p>
           )}
         </div>
 
