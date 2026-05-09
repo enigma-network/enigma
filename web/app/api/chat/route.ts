@@ -17,7 +17,7 @@ function nodeScore(n: { benchmark_score: number; avg_rating: number; reliability
 
 async function fetchJobCost(assignedNodeId: string): Promise<number> {
   try {
-    const headers = ADMIN_TOKEN ? { 'X-Admin-Token': ADMIN_TOKEN } : {}
+    const headers: Record<string, string> = ADMIN_TOKEN ? { 'X-Admin-Token': ADMIN_TOKEN } : {}
     const res = await fetch(`${ENIGMA}/api/v1/admin/nodes`, { headers })
     if (!res.ok) return ENI_MIN
     const nodes = await res.json()
