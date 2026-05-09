@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { ClaimButton } from '@/components/ClaimButton'
 import { Logo } from '@/components/Logo'
+import { ApiKeyManager } from '@/components/ApiKeyManager'
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -57,7 +58,9 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <ApiKeyManager />
+
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mt-6">
           <h2 className="text-white font-semibold mb-4">Letzte Transaktionen</h2>
           {user.transactions.length === 0 ? (
             <p className="text-slate-500 text-sm">Keine Transaktionen</p>

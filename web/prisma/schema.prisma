@@ -8,17 +8,28 @@ datasource db {
 }
 
 model User {
-  id           String              @id @default(cuid())
-  email        String              @unique
-  name         String?
-  image        String?
+  id            String              @id @default(cuid())
+  email         String              @unique
+  name          String?
+  image         String?
   emailVerified DateTime?
-  role         Role                @default(USER)
-  eniBalance   Float               @default(10.0)
-  nodeId       String?
-  createdAt    DateTime            @default(now())
-  accounts     Account[]
-  transactions WalletTransaction[]
+  role          Role                @default(USER)
+  eniBalance    Float               @default(10.0)
+  nodeId        String?
+  createdAt     DateTime            @default(now())
+  accounts      Account[]
+  transactions  WalletTransaction[]
+  apiKeys       ApiKey[]
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  name       String    @default("Default")
+  userId     String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum Role {
