@@ -16,9 +16,7 @@ type Server struct {
 	db  *sql.DB
 }
 
-func NewServer(db *sql.DB) *Server {
-	reg := registry.NewSQLiteRegistry(db)
-	led := ledger.NewSQLiteLedger(db)
+func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger) *Server {
 	jobs := newJobStore(db)
 	rtr := router.NewScoredRouter(router.NewRoundRobinRouter())
 

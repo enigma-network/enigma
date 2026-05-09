@@ -3,9 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
-	"enigma/internal/db"
 	"enigma/internal/ledger"
 	"enigma/internal/registry"
 	"enigma/internal/router"
@@ -15,27 +13,23 @@ import (
 	"testing"
 )
 
-func setupJobsHandler(t *testing.T) (*jobsHandler, *sql.DB) {
+func setupJobsHandler(t *testing.T) (*jobsHandler, *registry.PostgresRegistry) {
 	t.Helper()
-	sqldb, err := db.Open(t.TempDir() + "/test.db")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { sqldb.Close() })
+	sqldb := testDB(t)
+	reg := registry.NewPostgresRegistry(sqldb)
 	return &jobsHandler{
 		jobs:     newJobStore(sqldb),
-		registry: registry.NewSQLiteRegistry(sqldb),
+		registry: reg,
 		router:   router.NewScoredRouter(router.NewRoundRobinRouter()),
-		ledger:   ledger.NewSQLiteLedger(sqldb),
-	}, sqldb
+		ledger:   ledger.NewPostgresLedger(sqldb),
+	}, reg
 }
 
 func TestSubmitJob(t *testing.T) {
-	h, sqldb := setupJobsHandler(t)
+	h, reg := setupJobsHandler(t)
 	ctx := context.Background()
 
 	// Register a node first
-	reg := registry.NewSQLiteRegistry(sqldb)
 	reg.Register(ctx, types.Node{ID: "node-1", Address: "localhost:9001", Backend: types.BackendOllama, Models: []string{"gemma3:4b"}})
 
 	body, _ := json.Marshal(map[string]string{"prompt": "hello", "model": "gemma3:4b"})

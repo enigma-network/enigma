@@ -3,17 +3,22 @@ package ledger
 import (
 	"context"
 	"enigma/internal/db"
+	"os"
 	"testing"
 )
 
-func newTestLedger(t *testing.T) *SQLiteLedger {
+func newTestLedger(t *testing.T) *PostgresLedger {
 	t.Helper()
-	sqldb, err := db.Open(t.TempDir() + "/test.db")
+	connStr := os.Getenv("TEST_DATABASE_URL")
+	if connStr == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	sqldb, err := db.Open(connStr)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { sqldb.Close() })
-	return NewSQLiteLedger(sqldb)
+	return NewPostgresLedger(sqldb)
 }
 
 func TestCreditAndBalance(t *testing.T) {

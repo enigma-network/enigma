@@ -13,6 +13,7 @@ import (
 	"enigma/internal/types"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -26,16 +27,26 @@ func (f *fastMockBackend) ListModels(_ context.Context) ([]string, error) {
 	return []string{"gemma3:4b"}, nil
 }
 
-func newTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
+func testDB(t *testing.T) *sql.DB {
 	t.Helper()
-	sqldb, err := db.Open(t.TempDir() + "/test.db")
+	connStr := os.Getenv("TEST_DATABASE_URL")
+	if connStr == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	sqldb, err := db.Open(connStr)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { sqldb.Close() })
+	return sqldb
+}
 
-	reg := registry.NewSQLiteRegistry(sqldb)
-	led := ledger.NewSQLiteLedger(sqldb)
+func newTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
+	t.Helper()
+	sqldb := testDB(t)
+
+	reg := registry.NewPostgresRegistry(sqldb)
+	led := ledger.NewPostgresLedger(sqldb)
 	jobs := newJobStore(sqldb)
 	rtr := router.NewScoredRouter(router.NewRoundRobinRouter())
 

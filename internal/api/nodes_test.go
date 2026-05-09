@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"enigma/internal/db"
 	"enigma/internal/ledger"
 	"enigma/internal/llm"
 	"enigma/internal/registry"
@@ -23,14 +22,10 @@ func (m *mockLLMBackend) ListModels(_ context.Context) ([]string, error) { retur
 
 func setupNodesHandler(t *testing.T) *nodesHandler {
 	t.Helper()
-	sqldb, err := db.Open(t.TempDir() + "/test.db")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { sqldb.Close() })
+	sqldb := testDB(t)
 	return &nodesHandler{
-		registry: registry.NewSQLiteRegistry(sqldb),
-		ledger:   ledger.NewSQLiteLedger(sqldb),
+		registry: registry.NewPostgresRegistry(sqldb),
+		ledger:   ledger.NewPostgresLedger(sqldb),
 		jobs:     newJobStore(sqldb),
 		newBackend: func(_ types.Backend, _ string) llm.LLMBackend {
 			return &mockLLMBackend{}
