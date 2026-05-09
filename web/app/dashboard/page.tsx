@@ -22,8 +22,13 @@ function nodeScore(node: EnigmaNode): number {
 
 export default async function DashboardPage() {
   let statsError: string | null = null
+  let responseMs: number | null = null
+
+  const t0 = Date.now()
   const [stats, nodes, userCounts] = await Promise.all([
-    fetchStats().catch((e: Error) => { statsError = e.message; return null }),
+    fetchStats()
+      .then(s => { responseMs = Date.now() - t0; return s })
+      .catch((e: Error) => { statsError = e.message; return null }),
     fetchNodes().catch((): EnigmaNode[] => []),
     prisma.user.groupBy({ by: ['role'], _count: true }).catch(() => []),
   ])
@@ -32,6 +37,7 @@ export default async function DashboardPage() {
     (userCounts as { role: string; _count: number }[]).find(r => r.role === role)?._count ?? 0
 
   const serverOnline = stats !== null
+  const checkedAt = new Date().toLocaleTimeString('de-DE')
 
   return (
     <div>
@@ -41,17 +47,37 @@ export default async function DashboardPage() {
       </div>
 
       {/* Server Status */}
-      <div className={`rounded-xl border px-4 py-3 mb-6 flex items-center justify-between ${
+      <div className={`rounded-xl border p-4 mb-6 ${
         serverOnline ? 'bg-green-900/20 border-green-800' : 'bg-red-900/20 border-red-800'
       }`}>
-        <div className="flex items-center gap-3">
-          <span className={`text-xs font-medium ${serverOnline ? 'text-green-400' : 'text-red-400'}`}>
-            ● enigma-server {serverOnline ? 'online' : 'offline'}
-          </span>
-          <span className="text-slate-500 text-xs font-mono">{SERVER_URL}</span>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-slate-300 text-sm font-semibold">enigma-server</span>
+          <span className="text-slate-500 text-xs">geprüft: {checkedAt}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <p className="text-slate-500 text-xs mb-1">Status</p>
+            <p className={`text-sm font-medium ${serverOnline ? 'text-green-400' : 'text-red-400'}`}>
+              ● {serverOnline ? 'online' : 'offline'}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs mb-1">Antwortzeit</p>
+            <p className={`text-sm font-medium ${
+              responseMs === null ? 'text-red-400' :
+              responseMs < 100 ? 'text-green-400' :
+              responseMs < 500 ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {responseMs !== null ? `${responseMs} ms` : '–'}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs mb-1">URL</p>
+            <p className="text-xs font-mono text-slate-400 truncate">{SERVER_URL}</p>
+          </div>
         </div>
         {statsError && (
-          <span className="text-red-400 text-xs">{statsError}</span>
+          <p className="text-red-400 text-xs mt-2 border-t border-red-900 pt-2">{statsError}</p>
         )}
       </div>
 
