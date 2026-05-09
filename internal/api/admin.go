@@ -30,7 +30,7 @@ func (h *adminHandler) stats(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := h.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM jobs WHERE created_at > datetime('now','-1 hour')`).Scan(&stats.JobsLastHour); err != nil {
+	if err := h.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM jobs WHERE created_at > NOW() - INTERVAL '1 hour'`).Scan(&stats.JobsLastHour); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
