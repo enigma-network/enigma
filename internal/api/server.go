@@ -14,6 +14,7 @@ import (
 type Server struct {
 	mux *http.ServeMux
 	db  *sql.DB
+	hub *streamHub
 }
 
 func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger) *Server {
@@ -35,6 +36,8 @@ func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger) *Serve
 	mux.HandleFunc("POST /api/v1/nodes/register", nodesH.register)
 	mux.HandleFunc("PUT /api/v1/nodes/{id}/heartbeat", nodesH.heartbeat)
 	mux.HandleFunc("DELETE /api/v1/nodes/{id}", nodesH.deregister)
+	hub := newStreamHub(nil)
+	mux.HandleFunc("GET /api/v1/nodes/{id}/stream", hub.serveStream)
 	mux.HandleFunc("GET /api/v1/nodes/{id}/jobs", nodesH.pollJob)
 	mux.HandleFunc("GET /api/v1/nodes/{id}/balance", nodesH.balance)
 	mux.HandleFunc("POST /api/v1/jobs", jobsH.submit)
@@ -48,10 +51,11 @@ func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger) *Serve
 	mux.HandleFunc("GET /api/v1/admin/jobs", adminAuth(adminH.jobs))
 	mux.HandleFunc("GET /api/v1/admin/ledger", adminAuth(adminH.ledger))
 
-	return &Server{mux: mux, db: db}
+	return &Server{mux: mux, db: db, hub: hub}
 }
 
 func (s *Server) Handler() http.Handler { return s.mux }
+func (s *Server) Hub() *streamHub       { return s.hub }
 
 // adminAuth wraps a handler requiring X-Admin-Token header to match ENIGMA_ADMIN_TOKEN env var.
 // If ENIGMA_ADMIN_TOKEN is not set, the endpoint is open (PoC mode).
