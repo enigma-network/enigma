@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"enigma/internal/ledger"
 	"enigma/internal/llm"
+	"enigma/internal/pubsub"
 	"enigma/internal/registry"
 	"enigma/internal/router"
 	"enigma/internal/types"
@@ -17,10 +18,10 @@ type Server struct {
 	hub *streamHub
 }
 
-func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger) *Server {
+func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger, ps pubsub.PubSub) *Server {
 	jobs := newJobStore(db)
 	rtr := router.NewScoredRouter(router.NewRoundRobinRouter())
-	hub := newStreamHub(nil)
+	hub := newStreamHub(ps)
 
 	jobsH := &jobsHandler{jobs: jobs, registry: reg, router: rtr, ledger: led, hub: hub}
 	nodesH := &nodesHandler{

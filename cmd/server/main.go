@@ -5,6 +5,7 @@ import (
 	"enigma/internal/api"
 	"enigma/internal/db"
 	"enigma/internal/ledger"
+	"enigma/internal/pubsub"
 	"enigma/internal/registry"
 	"flag"
 	"log/slog"
@@ -54,12 +55,24 @@ func main() {
 	reg := registry.NewPostgresRegistry(sqldb)
 	led := ledger.NewPostgresLedger(sqldb)
 
+	var ps pubsub.PubSub
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		rps, err := pubsub.NewRedis(redisURL)
+		if err != nil {
+			slog.Warn("redis unavailable — running single-instance mode", "error", err)
+		} else {
+			ps = rps
+			defer rps.Close()
+			slog.Info("redis connected", "url", redisURL)
+		}
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	api.StartMonitor(ctx, sqldb)
 
-	srv := api.NewServer(sqldb, reg, led)
+	srv := api.NewServer(sqldb, reg, led, ps)
 	httpSrv := &http.Server{Addr: *addr, Handler: srv.Handler()}
 
 	go func() {

@@ -1,12 +1,13 @@
 package api
 
 import (
+	"context"
 	"testing"
 )
 
 func TestStreamHub_SendDelivers(t *testing.T) {
 	hub := newStreamHub(nil)
-	ch := hub.connect("node-1")
+	ch := hub.connect(context.Background(), "node-1")
 	defer hub.disconnect("node-1")
 
 	job := streamJob{ID: "job-1", Prompt: "hello", Model: "phi3:mini"}
