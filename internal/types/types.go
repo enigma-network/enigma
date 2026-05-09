@@ -12,6 +12,10 @@ const (
 
 	BackendOllama   Backend = "ollama"
 	BackendLlamaCpp Backend = "llamacpp"
+	BackendVLLM     Backend = "vllm"     // OpenAI-compatible, NVIDIA-optimised
+	BackendLMStudio Backend = "lmstudio" // OpenAI-compatible, desktop app
+	BackendLocalAI  Backend = "localai"  // OpenAI-compatible, Docker-based
+	BackendJanAI    Backend = "janai"    // OpenAI-compatible, desktop app
 
 	JobStatusPending JobStatus = "pending"
 	JobStatusRunning JobStatus = "running"

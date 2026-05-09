@@ -25,6 +25,8 @@ func defaultNewBackend(backend types.Backend, address string) llm.LLMBackend {
 	switch backend {
 	case types.BackendLlamaCpp:
 		return llm.NewLlamaCppBackend("http://" + address)
+	case types.BackendVLLM, types.BackendLMStudio, types.BackendLocalAI, types.BackendJanAI:
+		return llm.NewOpenAICompatBackend("http://"+address, "")
 	default:
 		return llm.NewOllamaBackend("http://" + address)
 	}
