@@ -27,7 +27,7 @@ export default async function OnboardPage({
     })
   }
 
-  if (requestedRole === 'USER' && user.transactions.length === 0) {
+  if (user.transactions.length === 0) {
     await prisma.walletTransaction.create({
       data: { userId: user.id, amount: 10.0, reason: 'start_bonus' },
     })

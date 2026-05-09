@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ClaimButton } from '@/components/ClaimButton'
 import { Logo } from '@/components/Logo'
 import { ApiKeyManager } from '@/components/ApiKeyManager'
+import { EarningsSync } from '@/components/EarningsSync'
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -56,6 +57,7 @@ export default async function ProfilePage() {
               <ClaimButton />
             </div>
           </div>
+          {user.role === 'PROVIDER' && <EarningsSync />}
         </div>
 
         <ApiKeyManager />
