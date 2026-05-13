@@ -7,6 +7,7 @@ import { Logo } from './Logo'
 const links = [
   { href: '/dashboard', label: 'Overview', icon: '📊', roles: null },
   { href: '/chat', label: 'Chat', icon: '💬', roles: null },
+  { href: '/dashboard/provider', label: 'Provider Guide', icon: '📖', roles: ['PROVIDER', 'ADMIN'] },
   { href: '/dashboard/setup', label: 'Setup', icon: '⚙️', roles: ['PROVIDER', 'ADMIN'] },
   { href: '/dashboard/nodes', label: 'Nodes', icon: '🖥️', roles: null },
   { href: '/dashboard/jobs', label: 'Jobs', icon: '⚡', roles: null },
