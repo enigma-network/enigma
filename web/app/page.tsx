@@ -46,20 +46,42 @@ const t = {
     ],
     providerCta: 'Become a Provider →',
     tokenLabel: '// ENI Token',
-    tokenTitle: "The network's currency",
-    tokenSub: 'ENI is the native token that powers every transaction on the Enigma network.',
-    tf1Title: 'Pay for AI inference',
-    tf1: 'Users spend ENI to submit prompts. 1 ENI per completed job in the beta phase.',
-    tf2Title: 'Earn by providing compute',
-    tf2: 'Providers earn ENI for every successfully completed inference job. Higher quality = higher routing priority.',
-    tf3Title: 'Governance (coming)',
-    tf3: 'ENI holders will vote on network parameters, fee structures, and protocol upgrades.',
-    tf4Title: 'Staking for validators',
-    tf4: 'Validator nodes stake ENI to participate in result verification and earn additional rewards.',
+    tokenTitle: "Fair by design.\nPowered by ENI.",
+    tokenSub: 'ENI is the token that keeps Enigma honest — ensuring users never get exploited and providers always get rewarded. No middlemen. No hidden fees. Pure balance.',
+    tf1Title: 'Fair use for users',
+    tf1: 'Pay only for what you use. ENI costs a fraction of a cent per request — with a free daily claim of 10 ENI, most users never run out. AI for everyone.',
+    tf2Title: 'Real rewards for providers',
+    tf2: 'Every inference your GPU serves earns ENI — automatically, instantly, on-chain. The better your node performs, the more jobs it receives. Quality is rewarded.',
+    tf3Title: 'Built-in balance',
+    tf3: 'ENI creates a self-regulating equilibrium: when demand rises, providers earn more. When supply grows, costs drop for users. The market finds the fair price.',
+    tf4Title: 'Governance (coming)',
+    tf4: 'ENI holders will shape the future — voting on fees, routing rules, and protocol upgrades. The network belongs to its participants.',
     archLabel: '// Architecture',
     archTitle: 'Built for scale',
     archSub: 'Interface-driven architecture means every component is swappable — from SQLite to blockchain, from round-robin to distributed schedulers.',
     archScalePath: 'Scale path: RegistryStore → etcd · Router → Distributed Scheduler · Ledger → Blockchain',
+    apiLabel: '// API Integrations',
+    apiTitle: 'Works with your\nexisting tools.',
+    apiSub: 'Enigma speaks the protocols your tools already use — drop in as an OpenAI or Ollama endpoint with no code changes.',
+    apiCode: `from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://www.enigmanet.org/v1",
+    api_key="enk_your_key_here",
+)
+
+response = client.chat.completions.create(
+    model="phi3:mini",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(response.choices[0].message.content)`,
+    apiFeature1: 'OpenAI-compatible  /v1/chat/completions',
+    apiFeature1Desc: 'Cline, LangChain, n8n, Continue.dev, AnythingLLM, AutoGen — just swap the base URL',
+    apiFeature2: 'Ollama-compatible  /api/generate + /api/chat',
+    apiFeature2Desc: 'Open WebUI, Msty, Homebrew and any Ollama client — set host to enigmanet.org',
+    apiFeature3: 'Anthropic Messages API + MCP  (planned)',
+    apiFeature3Desc: 'Claude Desktop, Cursor agent mode and MCP-native tools — coming soon',
+    apiCta: 'Get API Key →',
     ctaTitle: 'Join the grid.',
     ctaSub: 'Start earning or start building — no setup fees, no lock-in.',
     ctaFree: 'Get 10 ENI Free →',
@@ -115,20 +137,42 @@ const t = {
     ],
     providerCta: 'Provider werden →',
     tokenLabel: '// ENI Token',
-    tokenTitle: 'Die Währung des Netzwerks',
-    tokenSub: 'ENI ist der native Token, der jede Transaktion im Enigma-Netzwerk antreibt.',
-    tf1Title: 'KI-Inferenz bezahlen',
-    tf1: 'Nutzer geben ENI aus, um Prompts zu senden. 1 ENI pro abgeschlossenem Job in der Beta-Phase.',
-    tf2Title: 'Durch Compute verdienen',
-    tf2: 'Provider verdienen ENI für jeden erfolgreich abgeschlossenen Inferenz-Job. Höhere Qualität = höhere Routing-Priorität.',
-    tf3Title: 'Governance (demnächst)',
-    tf3: 'ENI-Inhaber stimmen über Netzwerkparameter, Gebührenstrukturen und Protokoll-Upgrades ab.',
-    tf4Title: 'Staking für Validatoren',
-    tf4: 'Validator-Nodes staken ENI, um an der Ergebnis-Verifikation teilzunehmen und zusätzliche Rewards zu verdienen.',
+    tokenTitle: 'Fair by design.\nPowered by ENI.',
+    tokenSub: 'ENI ist der Token der Enigma fair hält — Nutzer werden nie ausgenutzt, Provider immer belohnt. Keine Mittelsmänner. Keine versteckten Gebühren. Echtes Gleichgewicht.',
+    tf1Title: 'Faire Nutzung für User',
+    tf1: 'Zahle nur was du nutzt. ENI kostet einen Bruchteil eines Cents pro Anfrage — mit täglich 10 ENI kostenlos geht niemandem das Budget aus. KI für alle.',
+    tf2Title: 'Echte Belohnung für Provider',
+    tf2: 'Jede Inferenz deiner GPU verdient ENI — automatisch, sofort, transparent. Je besser dein Node, desto mehr Jobs erhält er. Qualität wird belohnt.',
+    tf3Title: 'Eingebautes Gleichgewicht',
+    tf3: 'ENI schafft ein selbstregulierendes Gleichgewicht: steigt die Nachfrage, verdienen Provider mehr. Wächst das Angebot, sinken die Kosten für Nutzer.',
+    tf4Title: 'Governance (demnächst)',
+    tf4: 'ENI-Inhaber gestalten die Zukunft — Abstimmungen über Gebühren, Routing-Regeln und Protokoll-Upgrades. Das Netzwerk gehört seinen Teilnehmern.',
     archLabel: '// Architektur',
     archTitle: 'Für Skalierung gebaut',
     archSub: 'Interface-getriebene Architektur bedeutet: jede Komponente ist austauschbar — von SQLite zu Blockchain, von Round-Robin zu verteilten Schedulern.',
     archScalePath: 'Skalierungspfad: RegistryStore → etcd · Router → Distributed Scheduler · Ledger → Blockchain',
+    apiLabel: '// API-Integrationen',
+    apiTitle: 'Funktioniert mit\ndeinen Tools.',
+    apiSub: 'Enigma spricht die Protokolle die deine Tools bereits nutzen — als OpenAI- oder Ollama-Endpoint einbinden ohne Code-Änderungen.',
+    apiCode: `from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://www.enigmanet.org/v1",
+    api_key="enk_dein_key_hier",
+)
+
+response = client.chat.completions.create(
+    model="phi3:mini",
+    messages=[{"role": "user", "content": "Hallo!"}],
+)
+print(response.choices[0].message.content)`,
+    apiFeature1: 'OpenAI-kompatibel  /v1/chat/completions',
+    apiFeature1Desc: 'Cline, LangChain, n8n, Continue.dev, AnythingLLM, AutoGen — einfach Base URL tauschen',
+    apiFeature2: 'Ollama-kompatibel  /api/generate + /api/chat',
+    apiFeature2Desc: 'Open WebUI, Msty, Homebrew und alle Ollama-Clients — Host auf enigmanet.org setzen',
+    apiFeature3: 'Anthropic Messages API + MCP  (geplant)',
+    apiFeature3Desc: 'Claude Desktop, Cursor Agent-Modus und MCP-native Tools — demnächst verfügbar',
+    apiCta: 'API Key erstellen →',
     ctaTitle: 'Werde Teil des Grids.',
     ctaSub: 'Beginne zu verdienen oder zu bauen — keine Einrichtungsgebühren, kein Lock-in.',
     ctaFree: '10 ENI kostenlos →',
@@ -352,6 +396,32 @@ export default function LandingPage() {
               <p>{tx.providerDesc}</p>
               <ul className="feature-list">{tx.providerFeatures.map(f => <li key={f}>{f}</li>)}</ul>
               <Link href="/join/provider" className="btn btn-ghost" style={{ borderColor: 'rgba(0,191,255,0.3)', color: 'var(--cyan)' }}>{tx.providerCta}</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="how" id="api" style={{ background: 'var(--dark)' }}>
+        <div className="container">
+          <div className="section-label">{tx.apiLabel}</div>
+          <div className="section-title" style={{ whiteSpace: 'pre-line' }}>{tx.apiTitle}</div>
+          <p className="section-sub">{tx.apiSub}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start', marginTop: '48px' }}>
+            <div>
+              <pre style={{ background: '#070e1a', border: '1px solid rgba(0,220,130,0.15)', borderRadius: '12px', padding: '24px', fontSize: '13px', color: '#a0c4a0', overflowX: 'auto', lineHeight: '1.7' }}>{tx.apiCode}</pre>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {[
+                [tx.apiFeature1, tx.apiFeature1Desc, 'var(--green)'],
+                [tx.apiFeature2, tx.apiFeature2Desc, 'var(--cyan)'],
+                [tx.apiFeature3, tx.apiFeature3Desc, '#f5a623'],
+              ].map(([title, desc, color]) => (
+                <div key={title as string} style={{ borderLeft: `2px solid ${color}`, paddingLeft: '16px' }}>
+                  <p style={{ fontFamily: 'var(--font-head)', fontSize: '15px', fontWeight: 700, color: color as string, marginBottom: '4px' }}>{title}</p>
+                  <p style={{ color: 'var(--muted)', fontSize: '13px' }}>{desc}</p>
+                </div>
+              ))}
+              <Link href="/profile" className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '8px' }}>{tx.apiCta}</Link>
             </div>
           </div>
         </div>
