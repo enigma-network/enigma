@@ -51,6 +51,7 @@ func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger, ps pub
 	mux.HandleFunc("GET /api/v1/admin/nodes", adminAuth(adminH.nodes))
 	mux.HandleFunc("GET /api/v1/admin/jobs", adminAuth(adminH.jobs))
 	mux.HandleFunc("GET /api/v1/admin/ledger", adminAuth(adminH.ledger))
+	mux.HandleFunc("GET /api/v1/admin/instances", adminAuth(adminH.instances))
 
 	return &Server{mux: mux, db: db, hub: hub}
 }

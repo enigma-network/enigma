@@ -4,6 +4,7 @@ import (
 	"context"
 	"enigma/internal/api"
 	"enigma/internal/db"
+	"enigma/internal/instancetracker"
 	"enigma/internal/ledger"
 	"enigma/internal/pubsub"
 	"enigma/internal/registry"
@@ -65,10 +66,18 @@ func main() {
 			defer rps.Close()
 			slog.Info("redis connected", "url", redisURL)
 		}
+
+		// instance tracker started after ctx is created below
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		if tracker, err := instancetracker.New(redisURL); err == nil {
+			go tracker.Run(ctx)
+		}
+	}
 
 	api.StartMonitor(ctx, sqldb)
 

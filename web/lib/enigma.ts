@@ -72,3 +72,14 @@ export async function fetchLedger(limit = 50): Promise<EnigmaLedgerEntry[]> {
   if (!res.ok) throw new Error(`enigma ledger failed: ${res.status}`)
   return res.json()
 }
+
+export interface ServerInstances {
+  count: number
+  instances: string[]
+}
+
+export async function fetchInstances(): Promise<ServerInstances> {
+  const res = await fetch(`${BASE}/api/v1/admin/instances`, { next: { revalidate: 0 }, headers: headers() })
+  if (!res.ok) return { count: 0, instances: [] }
+  return res.json()
+}

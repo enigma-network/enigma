@@ -1,5 +1,5 @@
 import { StatCard } from '@/components/StatCard'
-import { fetchStats, fetchNodes, EnigmaNode } from '@/lib/enigma'
+import { fetchStats, fetchNodes, fetchInstances, EnigmaNode } from '@/lib/enigma'
 import { prisma } from '@/lib/prisma'
 
 export const revalidate = 0
@@ -25,12 +25,13 @@ export default async function DashboardPage() {
   let responseMs: number | null = null
 
   const t0 = Date.now()
-  const [stats, nodes, userCounts] = await Promise.all([
+  const [stats, nodes, userCounts, instanceData] = await Promise.all([
     fetchStats()
       .then(s => { responseMs = Date.now() - t0; return s })
       .catch((e: Error) => { statsError = e.message; return null }),
     fetchNodes().catch((): EnigmaNode[] => []),
     prisma.user.groupBy({ by: ['role'], _count: true }).catch(() => []),
+    fetchInstances().catch(() => ({ count: 0, instances: [] as string[] })),
   ])
 
   const countByRole = (role: string) =>
@@ -54,11 +55,17 @@ export default async function DashboardPage() {
           <span className="text-slate-300 text-sm font-semibold">enigma-server</span>
           <span className="text-slate-500 text-xs">geprüft: {checkedAt}</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <p className="text-slate-500 text-xs mb-1">Status</p>
             <p className={`text-sm font-medium ${serverOnline ? 'text-green-400' : 'text-red-400'}`}>
               ● {serverOnline ? 'online' : 'offline'}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs mb-1">Instanzen</p>
+            <p className={`text-sm font-medium ${instanceData.count > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+              {instanceData.count} aktiv
             </p>
           </div>
           <div>
@@ -76,6 +83,15 @@ export default async function DashboardPage() {
             <p className="text-xs font-mono text-slate-400 truncate">{SERVER_URL}</p>
           </div>
         </div>
+        {instanceData.instances.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-700 flex flex-wrap gap-2">
+            {instanceData.instances.map(id => (
+              <span key={id} className="text-xs bg-green-900/40 text-green-300 px-2 py-0.5 rounded font-mono">
+                ● {id}
+              </span>
+            ))}
+          </div>
+        )}
         {statsError && (
           <p className="text-red-400 text-xs mt-2 border-t border-red-900 pt-2">{statsError}</p>
         )}

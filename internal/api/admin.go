@@ -3,7 +3,9 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"enigma/internal/instancetracker"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -36,6 +38,22 @@ func (h *adminHandler) stats(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
+}
+
+func (h *adminHandler) instances(w http.ResponseWriter, r *http.Request) {
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"instances": []string{}, "count": 0})
+		return
+	}
+	list, err := instancetracker.List(redisURL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"instances": list, "count": len(list)})
 }
 
 func (h *adminHandler) nodes(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +93,6 @@ func (h *adminHandler) nodes(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(nodes)
 }
@@ -87,11 +104,10 @@ func (h *adminHandler) jobs(w http.ResponseWriter, r *http.Request) {
 			limit = v
 		}
 	}
-
 	rows, err := h.db.QueryContext(r.Context(),
 		`SELECT id, prompt, model, status, COALESCE(assigned_node,''), COALESCE(result,''),
-		 COALESCE(duration_ms,0), created_at, COALESCE(completed_at,'')
-		 FROM jobs ORDER BY created_at DESC LIMIT ?`, limit)
+		 COALESCE(duration_ms,0), created_at, completed_at
+		 FROM jobs ORDER BY created_at DESC LIMIT $1`, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -99,15 +115,15 @@ func (h *adminHandler) jobs(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type Job struct {
-		ID           string `json:"id"`
-		Prompt       string `json:"prompt"`
-		Model        string `json:"model"`
-		Status       string `json:"status"`
-		AssignedNode string `json:"assigned_node"`
-		Result       string `json:"result"`
-		DurationMs   int64  `json:"duration_ms"`
-		CreatedAt    string `json:"created_at"`
-		CompletedAt  string `json:"completed_at"`
+		ID           string  `json:"id"`
+		Prompt       string  `json:"prompt"`
+		Model        string  `json:"model"`
+		Status       string  `json:"status"`
+		AssignedNode string  `json:"assigned_node"`
+		Result       string  `json:"result"`
+		DurationMs   int64   `json:"duration_ms"`
+		CreatedAt    string  `json:"created_at"`
+		CompletedAt  *string `json:"completed_at"`
 	}
 
 	jobs := []Job{}
@@ -124,7 +140,6 @@ func (h *adminHandler) jobs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jobs)
 }
@@ -136,9 +151,8 @@ func (h *adminHandler) ledger(w http.ResponseWriter, r *http.Request) {
 			limit = v
 		}
 	}
-
 	rows, err := h.db.QueryContext(r.Context(),
-		`SELECT id, node_id, amount, reason, created_at FROM ledger ORDER BY created_at DESC LIMIT ?`, limit)
+		`SELECT id, node_id, amount, reason, created_at FROM ledger ORDER BY created_at DESC LIMIT $1`, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -166,7 +180,6 @@ func (h *adminHandler) ledger(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entries)
 }
