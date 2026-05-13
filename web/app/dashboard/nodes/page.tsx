@@ -1,6 +1,6 @@
 import { fetchNodes, EnigmaNode } from '@/lib/enigma'
 import { auth } from '@/lib/auth'
-import { DeleteNodeButton } from '@/components/DeleteNodeButton'
+import { NodeActions } from '@/components/NodeActions'
 
 export const revalidate = 10
 
@@ -58,7 +58,11 @@ export default async function NodesPage() {
                 <td className="px-4 py-3 text-slate-300 text-xs">{node.avg_rating.toFixed(2)}</td>
                 <td className="px-4 py-3 font-medium text-xs text-white">{nodeScore(node).toFixed(2)}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${node.status === 'online' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    node.status === 'online' ? 'bg-green-900 text-green-300' :
+                    node.status === 'suspended' ? 'bg-yellow-900 text-yellow-300' :
+                    'bg-red-900 text-red-300'
+                  }`}>
                     ● {node.status}
                   </span>
                 </td>
@@ -67,7 +71,7 @@ export default async function NodesPage() {
                 </td>
                 {canDelete && (
                   <td className="px-2 py-3">
-                    <DeleteNodeButton nodeId={node.id} status={node.status} />
+                    <NodeActions nodeId={node.id} status={node.status} />
                   </td>
                 )}
               </tr>

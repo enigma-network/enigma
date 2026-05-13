@@ -46,6 +46,9 @@ func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger, ps pub
 	mux.HandleFunc("POST /api/v1/jobs/{id}/result", jobsH.result)
 	mux.HandleFunc("POST /api/v1/jobs/{id}/rate", ratingsH.rate)
 
+	mux.HandleFunc("PUT /api/v1/nodes/{id}/suspend", adminAuth(nodesH.suspend))
+	mux.HandleFunc("PUT /api/v1/nodes/{id}/resume", adminAuth(nodesH.resume))
+
 	adminH := &adminHandler{db: db}
 	mux.HandleFunc("GET /api/v1/admin/stats", adminAuth(adminH.stats))
 	mux.HandleFunc("GET /api/v1/admin/nodes", adminAuth(adminH.nodes))

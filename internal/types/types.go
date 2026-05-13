@@ -7,8 +7,9 @@ type Backend string
 type JobStatus string
 
 const (
-	NodeStatusOnline  NodeStatus = "online"
-	NodeStatusOffline NodeStatus = "offline"
+	NodeStatusOnline     NodeStatus = "online"
+	NodeStatusOffline    NodeStatus = "offline"
+	NodeStatusSuspended  NodeStatus = "suspended"
 
 	BackendOllama   Backend = "ollama"
 	BackendLlamaCpp Backend = "llamacpp"

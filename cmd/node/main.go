@@ -55,14 +55,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to register: %v", err)
 	}
-	var regResp map[string]string
+	var regResp struct {
+		NodeID    string `json:"node_id"`
+		Suspended bool   `json:"suspended"`
+	}
 	json.NewDecoder(resp.Body).Decode(&regResp)
 	resp.Body.Close()
-	nodeID := regResp["node_id"]
+	nodeID := regResp.NodeID
 	if nodeID == "" {
 		log.Fatal("no node_id in register response")
 	}
-	log.Printf("registered as node %s", nodeID)
+	if regResp.Suspended {
+		log.Printf("node %s is SUSPENDED by provider — waiting for resume", nodeID)
+	} else {
+		log.Printf("registered as node %s", nodeID)
+	}
 
 	defer func() {
 		req, _ := http.NewRequest("DELETE", *serverURL+"/api/v1/nodes/"+nodeID, nil)
@@ -182,6 +189,8 @@ func runSSELoop(ctx context.Context, serverURL, nodeID string, backend llm.LLMBa
 			eventType = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
 		} else if strings.HasPrefix(line, "data:") {
 			dataLine = strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		} else if strings.HasPrefix(line, ": suspended") {
+			log.Printf("node is suspended — waiting for provider to resume")
 		}
 	}
 	return scanner.Err()

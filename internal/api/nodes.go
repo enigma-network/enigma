@@ -72,9 +72,31 @@ func (h *nodesHandler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if node is suspended after registration
+	registered, _ := h.registry.Get(r.Context(), node.ID)
+	suspended := registered.Status == types.NodeStatusSuspended
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"node_id": node.ID})
+	json.NewEncoder(w).Encode(map[string]any{"node_id": node.ID, "suspended": suspended})
+}
+
+func (h *nodesHandler) suspend(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := h.registry.SetStatus(r.Context(), id, types.NodeStatusSuspended); err != nil {
+		http.Error(w, "node not found", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *nodesHandler) resume(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := h.registry.SetStatus(r.Context(), id, types.NodeStatusOnline); err != nil {
+		http.Error(w, "node not found", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *nodesHandler) heartbeat(w http.ResponseWriter, r *http.Request) {

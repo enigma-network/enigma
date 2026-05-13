@@ -21,7 +21,8 @@ func (r *PostgresRegistry) Register(ctx context.Context, node types.Node) error 
 		ON CONFLICT(id) DO UPDATE SET
 			address=EXCLUDED.address, backend=EXCLUDED.backend, models=EXCLUDED.models,
 			gpu_vram_mb=EXCLUDED.gpu_vram_mb, gpu_model=EXCLUDED.gpu_model,
-			status='online', last_heartbeat=NOW()`,
+			status=CASE WHEN nodes.status='suspended' THEN 'suspended' ELSE 'online' END,
+			last_heartbeat=NOW()`,
 		node.ID, node.Address, string(node.Backend), string(models),
 		node.GPUVRAMMb, node.GPUModel, node.BenchmarkScore, node.AvgRating, node.Reliability,
 	)
@@ -34,7 +35,11 @@ func (r *PostgresRegistry) Deregister(ctx context.Context, nodeID string) error 
 }
 
 func (r *PostgresRegistry) Heartbeat(ctx context.Context, nodeID string) error {
-	res, err := r.db.ExecContext(ctx, `UPDATE nodes SET last_heartbeat=NOW(), status='online' WHERE id=$1`, nodeID)
+	// Keep suspended status — only update heartbeat timestamp and set online if not suspended
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE nodes SET last_heartbeat=NOW(),
+		 status=CASE WHEN status='suspended' THEN 'suspended' ELSE 'online' END
+		 WHERE id=$1`, nodeID)
 	if err != nil {
 		return err
 	}
@@ -43,6 +48,11 @@ func (r *PostgresRegistry) Heartbeat(ctx context.Context, nodeID string) error {
 		return fmt.Errorf("node %q not found", nodeID)
 	}
 	return nil
+}
+
+func (r *PostgresRegistry) SetStatus(ctx context.Context, nodeID string, status types.NodeStatus) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE nodes SET status=$1 WHERE id=$2`, string(status), nodeID)
+	return err
 }
 
 func (r *PostgresRegistry) List(ctx context.Context) ([]types.Node, error) {
