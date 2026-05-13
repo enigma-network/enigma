@@ -69,6 +69,35 @@ func main() {
 		http.DefaultClient.Do(req)
 	}()
 
+	// Periodically refresh model list and re-register if changed
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		current := models
+		client := &http.Client{Timeout: 10 * time.Second}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				updated, err := llmBackend.ListModels(ctx)
+				if err != nil || len(updated) == len(current) {
+					continue
+				}
+				current = updated
+				body, _ := json.Marshal(map[string]any{
+					"address": *backendAddr, "backend": string(backend),
+					"models": updated, "gpu_vram_mb": 0, "gpu_model": "",
+				})
+				req, _ := http.NewRequestWithContext(ctx, "POST",
+					*serverURL+"/api/v1/nodes/register", bytes.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				client.Do(req)
+				log.Printf("model list updated: %v", updated)
+			}
+		}
+	}()
+
 	// SSE job stream with exponential backoff reconnect
 	backoff := time.Second
 	for {
