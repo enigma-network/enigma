@@ -1,4 +1,6 @@
 import { fetchNodes, EnigmaNode } from '@/lib/enigma'
+import { auth } from '@/lib/auth'
+import { DeleteNodeButton } from '@/components/DeleteNodeButton'
 
 export const revalidate = 10
 
@@ -14,7 +16,11 @@ function nodeScore(node: EnigmaNode): number {
 }
 
 export default async function NodesPage() {
-  const nodes = await fetchNodes().catch((): EnigmaNode[] => [])
+  const [nodes, session] = await Promise.all([
+    fetchNodes().catch((): EnigmaNode[] => []),
+    auth(),
+  ])
+  const canDelete = session?.user?.role === 'PROVIDER' || session?.user?.role === 'ADMIN'
 
   return (
     <div>
@@ -35,6 +41,7 @@ export default async function NodesPage() {
               <th className="text-left px-4 py-3">Score</th>
               <th className="text-left px-4 py-3">Status</th>
               <th className="text-left px-4 py-3">Heartbeat</th>
+              {canDelete && <th className="px-4 py-3"></th>}
             </tr>
           </thead>
           <tbody>
@@ -58,6 +65,11 @@ export default async function NodesPage() {
                 <td className="px-4 py-3 text-slate-500 text-xs">
                   {node.last_heartbeat ? new Date(node.last_heartbeat).toLocaleTimeString('de-DE') : '–'}
                 </td>
+                {canDelete && (
+                  <td className="px-2 py-3">
+                    <DeleteNodeButton nodeId={node.id} status={node.status} />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
