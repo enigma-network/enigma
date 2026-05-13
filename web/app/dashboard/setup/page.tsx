@@ -8,7 +8,8 @@ export default function SetupPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>(['gemma3:12b'])
   const [serverUrl, setServerUrl] = useState('http://localhost:8080')
   const [os, setOs] = useState<'linux' | 'mac' | 'windows'>('linux')
-  const [backend, setBackend] = useState<'ollama' | 'vllm' | 'lmstudio' | 'localai' | 'janai'>('ollama')
+  const [backend, setBackend] = useState<'ollama' | 'ollama-native' | 'vllm' | 'lmstudio' | 'localai' | 'janai'>('ollama')
+  const [backendPort, setBackendPort] = useState('11434')
   const [downloading, setDownloading] = useState(false)
   const [nodes, setNodes] = useState<{ id: string; address: string; status: string; models: string }[]>([])
   const [nodesLoading, setNodesLoading] = useState(true)
@@ -65,7 +66,8 @@ export default function SetupPage() {
     server: serverUrl,
     os,
     backend,
-  }).toString(), [gpuId, selectedModels, serverUrl, os, backend])
+    backendPort,
+  }).toString(), [gpuId, selectedModels, serverUrl, os, backend, backendPort])
 
   async function download(type: 'script' | 'install') {
     setDownloading(true)
@@ -147,13 +149,29 @@ export default function SetupPage() {
             onChange={e => setBackend(e.target.value as typeof backend)}
             className="w-full bg-slate-900 border border-slate-600 text-slate-200 rounded-lg px-3 py-2 text-sm"
           >
-            <option value="ollama">Ollama (empfohlen — einfachste Installation)</option>
+            <option value="ollama">Ollama (Docker — empfohlen, alles automatisch)</option>
+            <option value="ollama-native">Ollama (nativ — bereits auf diesem PC installiert)</option>
             <option value="vllm">vLLM (NVIDIA — höchste Performance)</option>
             <option value="lmstudio">LM Studio (Desktop App — Windows/Mac)</option>
             <option value="localai">LocalAI (Docker — OpenAI-kompatibel)</option>
             <option value="janai">Jan.ai (Desktop App — Open Source)</option>
           </select>
-          {backend !== 'ollama' && (
+          {backend === 'ollama-native' && (
+            <div className="mt-3">
+              <p className="text-green-400 text-xs mb-2">✓ Nutzt deine bestehende Ollama-Installation — keine doppelten Modell-Downloads.</p>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-xs">Ollama Port:</span>
+                <input
+                  type="text"
+                  value={backendPort}
+                  onChange={e => setBackendPort(e.target.value)}
+                  className="w-24 bg-slate-900 border border-slate-600 text-slate-200 rounded px-2 py-1 text-xs font-mono"
+                />
+                <span className="text-slate-500 text-xs">(Standard: 11434)</span>
+              </div>
+            </div>
+          )}
+          {backend !== 'ollama' && backend !== 'ollama-native' && (
             <p className="text-yellow-400 text-xs mt-2">
               ⚠️ {backend === 'vllm' && 'vLLM benötigt NVIDIA GPU und Python-Setup. Standard-Port: 8000.'}
               {backend === 'lmstudio' && 'LM Studio muss laufen und Server-Modus aktiviert sein. Standard-Port: 1234.'}
