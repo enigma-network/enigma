@@ -89,6 +89,36 @@ func (r *PostgresRegistry) UpdateScores(ctx context.Context, nodeID string, benc
 	return err
 }
 
+func (r *PostgresRegistry) BulkSeed(ctx context.Context, nodes []types.Node) ([]string, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	heartbeat := time.Now().UTC().Add(2 * time.Hour)
+	ids := make([]string, 0, len(nodes))
+
+	for _, n := range nodes {
+		models, _ := json.Marshal(n.Models)
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO nodes (id, address, backend, models, gpu_vram_mb, gpu_model,
+				benchmark_score, avg_rating, reliability, status, last_heartbeat)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+			ON CONFLICT(id) DO NOTHING`,
+			n.ID, n.Address, string(n.Backend), string(models),
+			n.GPUVRAMMb, n.GPUModel, n.BenchmarkScore, n.AvgRating, n.Reliability,
+			string(n.Status), heartbeat,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("insert node %s: %w", n.ID, err)
+		}
+		ids = append(ids, n.ID)
+	}
+
+	return ids, tx.Commit()
+}
+
 func scanPGNodes(rows *sql.Rows) ([]types.Node, error) {
 	var nodes []types.Node
 	for rows.Next() {

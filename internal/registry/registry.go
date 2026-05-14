@@ -13,4 +13,5 @@ type RegistryStore interface {
 	Heartbeat(ctx context.Context, nodeID string) error
 	UpdateScores(ctx context.Context, nodeID string, benchmarkScore, avgRating, reliability float64) error
 	SetStatus(ctx context.Context, nodeID string, status types.NodeStatus) error
+	BulkSeed(ctx context.Context, nodes []types.Node) ([]string, error)
 }
