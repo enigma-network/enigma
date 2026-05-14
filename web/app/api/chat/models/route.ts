@@ -1,16 +1,19 @@
-import { fetchNodes } from '@/lib/enigma'
 import { NextResponse } from 'next/server'
+
+const BASE = (process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
 export async function GET() {
   try {
-    const nodes = await fetchNodes()
-    const online = nodes.filter(n => n.status === 'online')
+    // Public nodes endpoint returns only online nodes
+    const res = await fetch(`${BASE}/api/v1/nodes`, { cache: 'no-store' })
+    if (!res.ok) return NextResponse.json({ models: [] })
+    const nodes: { models: string }[] = await res.json()
     const modelSet = new Set<string>()
-    for (const node of online) {
+    for (const node of nodes) {
       try {
         const models: string[] = JSON.parse(node.models)
         models.forEach(m => modelSet.add(m))
-      } catch { /* ignore parse errors */ }
+      } catch { /* ignore */ }
     }
     return NextResponse.json({ models: Array.from(modelSet).sort() })
   } catch {

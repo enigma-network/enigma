@@ -247,7 +247,7 @@ func doHeartbeat(ctx context.Context, client *http.Client, nodeID string, m *met
 		return
 	}
 	resp.Body.Close()
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
 		m.heartbeats.Add(1)
 	} else {
 		m.heartbeatErrs.Add(1)
