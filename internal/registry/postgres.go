@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+
 type PostgresRegistry struct{ db *sql.DB }
 
 func NewPostgresRegistry(db *sql.DB) *PostgresRegistry { return &PostgresRegistry{db: db} }
@@ -90,41 +91,69 @@ func (r *PostgresRegistry) UpdateScores(ctx context.Context, nodeID string, benc
 }
 
 func (r *PostgresRegistry) BulkSeed(ctx context.Context, nodes []types.Node) ([]string, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
+	if len(nodes) == 0 {
+		return nil, nil
 	}
-	defer tx.Rollback()
 
 	// 2h grace: ghost nodes stay "online" for 2 hours without sending real heartbeats
 	heartbeat := time.Now().UTC().Add(2 * time.Hour)
-	ids := make([]string, 0, len(nodes))
 
-	for _, n := range nodes {
-		var models []byte
-		models, err = json.Marshal(n.Models)
+	nodeIDs := make([]string, len(nodes))
+	addresses := make([]string, len(nodes))
+	backends := make([]string, len(nodes))
+	modelsJSON := make([]string, len(nodes))
+	gpuVRAMs := make([]int32, len(nodes))
+	gpuModels := make([]string, len(nodes))
+	benchmarks := make([]float64, len(nodes))
+	ratings := make([]float64, len(nodes))
+	reliabilities := make([]float64, len(nodes))
+	statuses := make([]string, len(nodes))
+
+	for i, n := range nodes {
+		models, err := json.Marshal(n.Models)
 		if err != nil {
 			return nil, fmt.Errorf("marshal models for node %s: %w", n.ID, err)
 		}
-		var res sql.Result
-		res, err = tx.ExecContext(ctx, `
-			INSERT INTO nodes (id, address, backend, models, gpu_vram_mb, gpu_model,
-				benchmark_score, avg_rating, reliability, status, last_heartbeat)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-			ON CONFLICT(id) DO NOTHING`,
-			n.ID, n.Address, string(n.Backend), string(models),
-			n.GPUVRAMMb, n.GPUModel, n.BenchmarkScore, n.AvgRating, n.Reliability,
-			string(n.Status), heartbeat,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("insert node %s: %w", n.ID, err)
-		}
-		if affected, _ := res.RowsAffected(); affected > 0 {
-			ids = append(ids, n.ID)
-		}
+		nodeIDs[i] = n.ID
+		addresses[i] = n.Address
+		backends[i] = string(n.Backend)
+		modelsJSON[i] = string(models)
+		gpuVRAMs[i] = int32(n.GPUVRAMMb)
+		gpuModels[i] = n.GPUModel
+		benchmarks[i] = n.BenchmarkScore
+		ratings[i] = n.AvgRating
+		reliabilities[i] = n.Reliability
+		statuses[i] = string(n.Status)
 	}
 
-	return ids, tx.Commit()
+	rows, err := r.db.QueryContext(ctx, `
+		INSERT INTO nodes (id, address, backend, models, gpu_vram_mb, gpu_model,
+			benchmark_score, avg_rating, reliability, status, last_heartbeat)
+		SELECT
+			unnest($1::text[]), unnest($2::text[]), unnest($3::text[]),
+			unnest($4::text[]), unnest($5::integer[]), unnest($6::text[]),
+			unnest($7::float8[]), unnest($8::float8[]), unnest($9::float8[]),
+			unnest($10::text[]), $11::timestamptz
+		ON CONFLICT(id) DO NOTHING
+		RETURNING id`,
+		nodeIDs, addresses, backends, modelsJSON,
+		gpuVRAMs, gpuModels, benchmarks, ratings, reliabilities, statuses,
+		heartbeat,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var inserted []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		inserted = append(inserted, id)
+	}
+	return inserted, rows.Err()
 }
 
 func scanPGNodes(rows *sql.Rows) ([]types.Node, error) {

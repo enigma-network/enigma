@@ -13,8 +13,8 @@ func Open(connStr string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(25)
 
 	migration, err := os.ReadFile("db/migrations/001_initial.sql")
 	if err != nil {
