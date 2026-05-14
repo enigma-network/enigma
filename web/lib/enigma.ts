@@ -55,10 +55,11 @@ export async function fetchStats(): Promise<EnigmaStats> {
   return res.json()
 }
 
-export async function fetchNodes(): Promise<EnigmaNode[]> {
-  const res = await fetch(`${BASE}/api/v1/admin/nodes`, { next: { revalidate: 0 }, headers: headers() })
+export async function fetchNodes(limit = 10): Promise<EnigmaNode[]> {
+  const res = await fetch(`${BASE}/api/v1/admin/nodes?limit=${limit}`, { next: { revalidate: 0 }, headers: headers() })
   if (!res.ok) throw new Error(`enigma nodes failed: ${res.status}`)
-  return res.json()
+  const data = await res.json()
+  return Array.isArray(data) ? data : (data.nodes ?? [])
 }
 
 export async function fetchJobs(limit = 50): Promise<EnigmaJob[]> {
