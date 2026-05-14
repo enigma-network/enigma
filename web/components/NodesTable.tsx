@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { NodeActions } from '@/components/NodeActions'
 
 const PAGE_SIZE = 25
-const BATCH_SIZE = PAGE_SIZE * 50 // 1250 nodes = 50 pages per batch
+const MAX_PAGES = 50  // stop at page 50, then "Mehr laden" shifts the window
 
 interface Node {
   id: string
@@ -33,57 +33,73 @@ function nodeScore(node: Node): number {
 export function NodesTable({ canDelete }: { canDelete: boolean }) {
   const [nodes, setNodes] = useState<Node[]>([])
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useState(0)          // page within current window
+  const [windowStart, setWindowStart] = useState(0)  // absolute offset of page 0
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError] = useState('')
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSearch = useRef('')
 
-  const fetchBatch = useCallback(async (offset: number, searchVal: string, replace: boolean) => {
-    if (replace) setLoading(true); else setLoadingMore(true)
+  const loadPage = useCallback(async (pageIdx: number, winStart: number, searchVal: string) => {
+    setLoading(true)
+    setError('')
     try {
-      const params = new URLSearchParams({ limit: String(BATCH_SIZE), offset: String(offset) })
+      const offset = winStart + pageIdx * PAGE_SIZE
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+      })
       if (searchVal) params.set('search', searchVal)
       const res = await fetch(`/api/admin/nodes?${params}`)
-      if (!res.ok) return
+      if (!res.ok) { setError(`Fehler ${res.status}`); return }
       const data = await res.json()
-      const fetched: Node[] = data.nodes ?? []
+      setNodes(data.nodes ?? [])
       setTotal(data.total ?? 0)
-      if (replace) {
-        setNodes(fetched)
-        setPage(0)
-      } else {
-        setNodes(prev => [...prev, ...fetched])
-      }
+    } catch {
+      setError('Server nicht erreichbar')
     } finally {
-      if (replace) setLoading(false); else setLoadingMore(false)
+      setLoading(false)
     }
   }, [])
 
   // initial load
-  useEffect(() => { fetchBatch(0, '', true) }, [fetchBatch])
+  useEffect(() => { loadPage(0, 0, '') }, [loadPage])
 
   function handleSearchChange(val: string) {
     setSearch(val)
     pendingSearch.current = val
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => {
-      fetchBatch(0, pendingSearch.current, true)
+      setPage(0)
+      setWindowStart(0)
+      loadPage(0, 0, pendingSearch.current)
     }, 300)
   }
 
-  function loadMore() {
-    fetchBatch(nodes.length, search, false)
+  function goToPage(newPage: number) {
+    setPage(newPage)
+    loadPage(newPage, windowStart, search)
   }
 
-  const totalPages = Math.ceil(nodes.length / PAGE_SIZE)
-  const pageNodes = nodes.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-  const hasMore = nodes.length < total
-  const isLastPage = page >= totalPages - 1
+  function loadMore() {
+    const newWinStart = windowStart + MAX_PAGES * PAGE_SIZE
+    setWindowStart(newWinStart)
+    setPage(0)
+    loadPage(0, newWinStart, search)
+  }
+
+  const absolutePage = windowStart / PAGE_SIZE + page
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  const windowPage = page  // 0..MAX_PAGES-1
+  const isLastWindowPage = windowPage >= MAX_PAGES - 1
+  const hasMoreBeyondWindow = absolutePage < totalPages - 1 && isLastWindowPage
+  const canPrev = absolutePage > 0
+  const canNext = absolutePage < totalPages - 1 && !isLastWindowPage
 
   return (
     <div>
+      {/* Header: search + count */}
       <div className="flex items-center justify-between mb-4 gap-4">
         <h1 className="text-xl font-bold text-white shrink-0">Provider Nodes</h1>
         <input
@@ -98,6 +114,47 @@ export function NodesTable({ canDelete }: { canDelete: boolean }) {
         </span>
       </div>
 
+      {/* Pagination — always visible above the table */}
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <button
+          onClick={() => goToPage(page - 1)}
+          disabled={!canPrev || loading}
+          className="px-3 py-1.5 text-sm rounded-lg bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 disabled:cursor-not-allowed"
+        >
+          ← Zurück
+        </button>
+
+        <span className="text-slate-400 text-sm">
+          {loading ? '…' : (
+            total === 0 ? 'Keine Ergebnisse' :
+            `Seite ${absolutePage + 1} / ${totalPages}`
+          )}
+        </span>
+
+        {hasMoreBeyondWindow ? (
+          <button
+            onClick={loadMore}
+            disabled={loading}
+            className="px-3 py-1.5 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-40"
+          >
+            {loading ? '…' : 'Mehr laden →'}
+          </button>
+        ) : (
+          <button
+            onClick={() => goToPage(page + 1)}
+            disabled={!canNext || loading}
+            className="px-3 py-1.5 text-sm rounded-lg bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 disabled:cursor-not-allowed"
+          >
+            Weiter →
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div className="mb-3 px-4 py-2 bg-red-900/40 border border-red-700 rounded-lg text-red-300 text-sm">{error}</div>
+      )}
+
+      {/* Table */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-900">
@@ -118,10 +175,10 @@ export function NodesTable({ canDelete }: { canDelete: boolean }) {
             {loading && (
               <tr><td colSpan={canDelete ? 10 : 9} className="px-4 py-8 text-center text-slate-500 text-sm">Lade…</td></tr>
             )}
-            {!loading && pageNodes.length === 0 && (
+            {!loading && nodes.length === 0 && (
               <tr><td colSpan={canDelete ? 10 : 9} className="px-4 py-8 text-center text-slate-500 text-sm">Keine Nodes</td></tr>
             )}
-            {!loading && pageNodes.map((node) => (
+            {!loading && nodes.map((node) => (
               <tr key={node.id} className="border-t border-slate-700/50 hover:bg-slate-700/20">
                 <td className="px-4 py-3 text-slate-300 font-mono text-xs">{node.address}</td>
                 <td className="px-4 py-3 text-slate-400 text-xs">{node.backend}</td>
@@ -152,41 +209,6 @@ export function NodesTable({ canDelete }: { canDelete: boolean }) {
           </tbody>
         </table>
       </div>
-
-      {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 gap-2">
-          <button
-            onClick={() => setPage(p => Math.max(0, p - 1))}
-            disabled={page === 0}
-            className="px-3 py-1.5 text-sm rounded-lg bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 disabled:cursor-not-allowed"
-          >
-            ← Zurück
-          </button>
-
-          <span className="text-slate-400 text-sm">
-            Seite {page + 1} / {totalPages}
-            {total > nodes.length && <span className="text-slate-500"> ({nodes.length.toLocaleString()} geladen von {total.toLocaleString()})</span>}
-          </span>
-
-          {isLastPage && hasMore ? (
-            <button
-              onClick={loadMore}
-              disabled={loadingMore}
-              className="px-3 py-1.5 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-40"
-            >
-              {loadingMore ? 'Lade…' : 'Mehr laden →'}
-            </button>
-          ) : (
-            <button
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={isLastPage}
-              className="px-3 py-1.5 text-sm rounded-lg bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 disabled:cursor-not-allowed"
-            >
-              Weiter →
-            </button>
-          )}
-        </div>
-      )}
     </div>
   )
 }
