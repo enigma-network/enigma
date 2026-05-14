@@ -6,6 +6,7 @@ import (
 	"enigma/internal/instancetracker"
 	"enigma/internal/registry"
 	"enigma/internal/types"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -62,9 +63,36 @@ func (h *adminHandler) instances(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *adminHandler) nodes(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	limit := 25
+	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v > 0 && v <= 1500 {
+		limit = v
+	}
+	offset := 0
+	if v, err := strconv.Atoi(q.Get("offset")); err == nil && v >= 0 {
+		offset = v
+	}
+	search := q.Get("search")
+
+	var where string
+	var args []any
+	if search != "" {
+		where = "WHERE (address ILIKE $1 OR gpu_model ILIKE $1 OR backend ILIKE $1)"
+		args = append(args, "%"+search+"%")
+	}
+
+	var total int
+	if err := h.db.QueryRowContext(r.Context(),
+		"SELECT COUNT(*) FROM nodes "+where, args...).Scan(&total); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	rows, err := h.db.QueryContext(r.Context(),
-		`SELECT id, address, backend, models, gpu_model, benchmark_score, avg_rating, reliability, status, last_heartbeat
-		 FROM nodes ORDER BY benchmark_score DESC`)
+		fmt.Sprintf(`SELECT id, address, backend, models, gpu_model, benchmark_score, avg_rating, reliability, status, last_heartbeat
+		 FROM nodes %s ORDER BY benchmark_score DESC LIMIT %d OFFSET %d`, where, limit, offset),
+		args...)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -99,7 +127,7 @@ func (h *adminHandler) nodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(nodes)
+	json.NewEncoder(w).Encode(map[string]any{"nodes": nodes, "total": total})
 }
 
 func (h *adminHandler) jobs(w http.ResponseWriter, r *http.Request) {

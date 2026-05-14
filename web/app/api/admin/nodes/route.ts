@@ -1,15 +1,31 @@
 import { auth } from '@/lib/auth'
-import { fetchNodes } from '@/lib/enigma'
 import { NextResponse } from 'next/server'
 
 const ENIGMA = process.env.ENIGMA_SERVER_URL ?? 'http://localhost:8080'
 const ADMIN_TOKEN = process.env.ENIGMA_ADMIN_TOKEN ?? ''
 
-export async function GET() {
+function enigmaHeaders(): Record<string, string> {
+  return ADMIN_TOKEN ? { 'X-Admin-Token': ADMIN_TOKEN } : {}
+}
+
+export async function GET(req: Request) {
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { searchParams } = new URL(req.url)
+  const limit = searchParams.get('limit') ?? '1250'
+  const offset = searchParams.get('offset') ?? '0'
+  const search = searchParams.get('search') ?? ''
+
+  const url = new URL(`${ENIGMA}/api/v1/admin/nodes`)
+  url.searchParams.set('limit', limit)
+  url.searchParams.set('offset', offset)
+  if (search) url.searchParams.set('search', search)
+
   try {
-    return NextResponse.json(await fetchNodes())
+    const res = await fetch(url.toString(), { cache: 'no-store', headers: enigmaHeaders() })
+    if (!res.ok) throw new Error(`upstream ${res.status}`)
+    return NextResponse.json(await res.json())
   } catch {
     return NextResponse.json({ error: 'enigma-server unavailable' }, { status: 503 })
   }
@@ -26,25 +42,25 @@ export async function DELETE(req: Request) {
   const isProvider = session.user.role === 'PROVIDER'
   if (!isAdmin && !isProvider) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // Providers can only delete offline nodes
   if (isProvider && !isAdmin) {
-    const nodes = await fetchNodes().catch(() => [])
-    const node = nodes.find(n => n.id === nodeId)
-    if (!node) return NextResponse.json({ error: 'Node not found' }, { status: 404 })
-    if (node.status === 'online') {
-      return NextResponse.json({ error: 'Cannot delete an online node' }, { status: 403 })
+    const res = await fetch(`${ENIGMA}/api/v1/admin/nodes?limit=1&search=${nodeId}`, {
+      cache: 'no-store', headers: enigmaHeaders(),
+    }).catch(() => null)
+    if (res?.ok) {
+      const data = await res.json()
+      const node = (data.nodes ?? []).find((n: { id: string; status: string }) => n.id === nodeId)
+      if (node?.status === 'online') {
+        return NextResponse.json({ error: 'Cannot delete an online node' }, { status: 403 })
+      }
     }
   }
 
-  const headers: Record<string, string> = {}
-  if (ADMIN_TOKEN) headers['X-Admin-Token'] = ADMIN_TOKEN
-
-  const res = await fetch(`${ENIGMA}/api/v1/nodes/${nodeId}`, {
+  const delRes = await fetch(`${ENIGMA}/api/v1/nodes/${nodeId}`, {
     method: 'DELETE',
-    headers,
+    headers: enigmaHeaders(),
   }).catch(() => null)
 
-  if (!res?.ok && res?.status !== 404) {
+  if (!delRes?.ok && delRes?.status !== 404) {
     return NextResponse.json({ error: 'Failed to delete node' }, { status: 500 })
   }
 
