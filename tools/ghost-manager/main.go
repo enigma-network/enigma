@@ -309,7 +309,9 @@ func completeJob(ctx context.Context, client *http.Client, job jobResponse, m *m
 	m.jobsCompleted.Add(1)
 }
 
-func generateResponse(ctx context.Context, client *http.Client, job jobResponse) string {
+var ollamaClient = &http.Client{Timeout: 180 * time.Second}
+
+func generateResponse(ctx context.Context, _ *http.Client, job jobResponse) string {
 	if *ollamaURL == "" {
 		return fmt.Sprintf("mock response from ghost node (prompt: %.60s…)", job.Prompt)
 	}
@@ -325,7 +327,7 @@ func generateResponse(ctx context.Context, client *http.Client, job jobResponse)
 		"stream": false,
 	})
 
-	ollamaCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	ollamaCtx, cancel := context.WithTimeout(ctx, 180*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ollamaCtx, "POST",
@@ -335,7 +337,7 @@ func generateResponse(ctx context.Context, client *http.Client, job jobResponse)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := ollamaClient.Do(req)
 	if err != nil {
 		return "ollama error: " + err.Error()
 	}
