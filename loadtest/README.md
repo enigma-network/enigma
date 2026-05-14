@@ -10,6 +10,8 @@ Misst p50/p95/p99 Latenz und Server-Verteilung über beide Server-Replicas.
 - SSH-Zugang zum Prod-VPS
 - `ENIGMA_ADMIN_TOKEN` aus Prod-Deployment
 
+> **Wichtig:** Stelle sicher dass `ENIGMA_ADMIN_TOKEN` auf dem Prod-Server gesetzt ist (env var in docker-compose.production.yml), sonst ist der Seed-Endpoint ungeschützt öffentlich erreichbar.
+
 ## Ablauf
 
 ### 1. Enigma-Server mit Seed-Endpoint deployen

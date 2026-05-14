@@ -30,8 +30,9 @@ services:
       context: ..
       dockerfile: Dockerfile
     container_name: enigma-lt-node
+    # ENIGMA_SERVER_URL default matches prod; override via env before `docker compose up`
     command:
-      - "-server=${ENIGMA_SERVER_URL:-http://40.113.111.66:8080}"
+      - "-server=http://40.113.111.66:8080"
       - "-backend=ollama"
       - "-backend-addr=ollama:11434"
     depends_on:
@@ -46,8 +47,10 @@ services:
     container_name: enigma-lt-ghost
     environment:
       ENIGMA_ADMIN_TOKEN: ${ENIGMA_ADMIN_TOKEN}
+      ENIGMA_SERVER_URL: ${ENIGMA_SERVER_URL:-http://40.113.111.66:8080}
+      GHOST_NODES: ${GHOST_NODES:-16761}
+      GHOST_OFFLINE_PCT: ${GHOST_OFFLINE_PCT:-0.03}
     command:
-      - "-server=${ENIGMA_SERVER_URL:-http://40.113.111.66:8080}"
       - "-nodes=${GHOST_NODES:-16761}"
       - "-offline-pct=${GHOST_OFFLINE_PCT:-0.03}"
       - "-batch=500"

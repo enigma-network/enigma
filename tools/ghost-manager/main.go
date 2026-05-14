@@ -81,6 +81,9 @@ func main() {
 	if tok := os.Getenv("ENIGMA_ADMIN_TOKEN"); tok != "" && *adminToken == "" {
 		*adminToken = tok
 	}
+	if u := os.Getenv("ENIGMA_SERVER_URL"); u != "" {
+		*serverURL = u
+	}
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
