@@ -7,13 +7,10 @@ export async function GET() {
     // Public nodes endpoint returns only online nodes
     const res = await fetch(`${BASE}/api/v1/nodes`, { cache: 'no-store' })
     if (!res.ok) return NextResponse.json({ models: [] })
-    const nodes: { models: string }[] = await res.json()
+    const nodes: { models: string[] }[] = await res.json()
     const modelSet = new Set<string>()
     for (const node of nodes) {
-      try {
-        const models: string[] = JSON.parse(node.models)
-        models.forEach(m => modelSet.add(m))
-      } catch { /* ignore */ }
+      if (Array.isArray(node.models)) node.models.forEach(m => modelSet.add(m))
     }
     return NextResponse.json({ models: Array.from(modelSet).sort() })
   } catch {

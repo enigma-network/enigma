@@ -35,6 +35,7 @@ func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger, ps pub
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	mux.HandleFunc("GET /api/v1/nodes", nodesH.list)
 	mux.HandleFunc("POST /api/v1/nodes/register", nodesH.register)
 	mux.HandleFunc("PUT /api/v1/nodes/{id}/heartbeat", nodesH.heartbeat)
 	mux.HandleFunc("DELETE /api/v1/nodes/{id}", nodesH.deregister)

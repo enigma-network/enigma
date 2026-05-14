@@ -32,6 +32,25 @@ func defaultNewBackend(backend types.Backend, address string) llm.LLMBackend {
 	}
 }
 
+func (h *nodesHandler) list(w http.ResponseWriter, r *http.Request) {
+	nodes, err := h.registry.List(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	type publicNode struct {
+		ID     string   `json:"id"`
+		Models []string `json:"models"`
+		Status string   `json:"status"`
+	}
+	out := make([]publicNode, len(nodes))
+	for i, n := range nodes {
+		out[i] = publicNode{ID: n.ID, Models: n.Models, Status: string(n.Status)}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}
+
 func (h *nodesHandler) register(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Address   string        `json:"address"`
