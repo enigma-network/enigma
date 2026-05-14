@@ -1,0 +1,63 @@
+# Enigma Load Test — lokale Komponenten
+# Verwendung: docker compose -f loadtest/docker-compose.loadtest.yml up
+# Voraussetzung: ENIGMA_ADMIN_TOKEN und ENIGMA_SERVER_URL in Umgebung
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: enigma-lt-ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    entrypoint: >
+      /bin/sh -c "
+        ollama serve &
+        sleep 8 &&
+        ollama pull qwen2.5:0.5b &&
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  enigma-node:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: enigma-lt-node
+    command:
+      - "-server=${ENIGMA_SERVER_URL:-http://40.113.111.66:8080}"
+      - "-backend=ollama"
+      - "-backend-addr=ollama:11434"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: on-failure
+
+  ghost-manager:
+    build:
+      context: ..
+      dockerfile: loadtest/Dockerfile.ghost-manager
+    container_name: enigma-lt-ghost
+    environment:
+      ENIGMA_ADMIN_TOKEN: ${ENIGMA_ADMIN_TOKEN}
+    command:
+      - "-server=${ENIGMA_SERVER_URL:-http://40.113.111.66:8080}"
+      - "-nodes=${GHOST_NODES:-16761}"
+      - "-offline-pct=${GHOST_OFFLINE_PCT:-0.03}"
+      - "-batch=500"
+      - "-start-rate=500"
+      - "-heartbeat-interval=30s"
+      - "-poll-interval=30s"
+      - "-jitter=5s"
+    depends_on:
+      - enigma-node
+    restart: on-failure
+
+volumes:
+  ollama-data:
