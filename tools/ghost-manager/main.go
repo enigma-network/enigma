@@ -20,6 +20,8 @@ import (
 var (
 	serverURL    = flag.String("server", "http://40.113.111.66:8080", "Enigma server URL")
 	adminToken   = flag.String("token", "", "X-Admin-Token (or set ENIGMA_ADMIN_TOKEN env)")
+	ollamaURL    = flag.String("ollama", "", "Local Ollama URL for real inference (e.g. http://localhost:11434); empty = mock")
+	ollamaModel  = flag.String("ollama-model", "phi3:mini", "Ollama model to use when -ollama is set")
 	totalNodes   = flag.Int("nodes", 16761, "Total ghost nodes to create")
 	offlinePct   = flag.Float64("offline-pct", 0.03, "Fraction to set offline (0.03 = 3%)")
 	batchSz      = flag.Int("batch", 500, "Nodes per seed API call")
@@ -64,7 +66,9 @@ type seedResponse struct {
 }
 
 type jobResponse struct {
-	ID string `json:"id"`
+	ID     string `json:"id"`
+	Prompt string `json:"prompt"`
+	Model  string `json:"model"`
 }
 
 type metrics struct {
@@ -278,16 +282,20 @@ func doPoll(ctx context.Context, client *http.Client, nodeID string, m *metrics)
 		return
 	}
 	m.jobsReceived.Add(1)
-	completeJob(ctx, client, job.ID, m)
+	completeJob(ctx, client, job, m)
 }
 
-func completeJob(ctx context.Context, client *http.Client, jobID string, m *metrics) {
+func completeJob(ctx context.Context, client *http.Client, job jobResponse, m *metrics) {
+	t0 := time.Now()
+	result := generateResponse(ctx, client, job)
+	durationMs := time.Since(t0).Milliseconds()
+
 	body, _ := json.Marshal(map[string]any{
-		"result":      "mock response from ghost node",
-		"duration_ms": 42,
+		"result":      result,
+		"duration_ms": durationMs,
 	})
 	req, err := http.NewRequestWithContext(ctx, "POST",
-		fmt.Sprintf("%s/api/v1/jobs/%s/result", *serverURL, jobID),
+		fmt.Sprintf("%s/api/v1/jobs/%s/result", *serverURL, job.ID),
 		bytes.NewReader(body))
 	if err != nil {
 		return
@@ -299,6 +307,51 @@ func completeJob(ctx context.Context, client *http.Client, jobID string, m *metr
 	}
 	resp.Body.Close()
 	m.jobsCompleted.Add(1)
+}
+
+func generateResponse(ctx context.Context, client *http.Client, job jobResponse) string {
+	if *ollamaURL == "" {
+		return fmt.Sprintf("mock response from ghost node (prompt: %.60s…)", job.Prompt)
+	}
+
+	model := *ollamaModel
+	if job.Model != "" {
+		model = job.Model
+	}
+
+	reqBody, _ := json.Marshal(map[string]any{
+		"model":  model,
+		"prompt": job.Prompt,
+		"stream": false,
+	})
+
+	ollamaCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ollamaCtx, "POST",
+		*ollamaURL+"/api/generate", bytes.NewReader(reqBody))
+	if err != nil {
+		return "ollama request error: " + err.Error()
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "ollama error: " + err.Error()
+	}
+	defer resp.Body.Close()
+
+	var ollamaResp struct {
+		Response string `json:"response"`
+		Error    string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
+		return "ollama decode error: " + err.Error()
+	}
+	if ollamaResp.Error != "" {
+		return "ollama error: " + ollamaResp.Error
+	}
+	return ollamaResp.Response
 }
 
 func reportMetrics(ctx context.Context, m *metrics) {
