@@ -58,6 +58,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
 		},
 	}
 	ratingsH := &ratingsHandler{db: sqldb, jobs: jobs, registry: reg}
+	adminH := &adminHandler{db: sqldb, registry: reg}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/nodes/register", nodesH.register)
@@ -69,6 +70,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *sql.DB) {
 	mux.HandleFunc("GET /api/v1/jobs/{id}", jobsH.status)
 	mux.HandleFunc("POST /api/v1/jobs/{id}/result", jobsH.result)
 	mux.HandleFunc("POST /api/v1/jobs/{id}/rate", ratingsH.rate)
+	mux.HandleFunc("POST /api/v1/admin/nodes/seed", adminH.bulkSeed)
 
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
