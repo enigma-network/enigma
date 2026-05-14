@@ -96,12 +96,18 @@ func (r *PostgresRegistry) BulkSeed(ctx context.Context, nodes []types.Node) ([]
 	}
 	defer tx.Rollback()
 
+	// 2h grace: ghost nodes stay "online" for 2 hours without sending real heartbeats
 	heartbeat := time.Now().UTC().Add(2 * time.Hour)
 	ids := make([]string, 0, len(nodes))
 
 	for _, n := range nodes {
-		models, _ := json.Marshal(n.Models)
-		_, err := tx.ExecContext(ctx, `
+		var models []byte
+		models, err = json.Marshal(n.Models)
+		if err != nil {
+			return nil, fmt.Errorf("marshal models for node %s: %w", n.ID, err)
+		}
+		var res sql.Result
+		res, err = tx.ExecContext(ctx, `
 			INSERT INTO nodes (id, address, backend, models, gpu_vram_mb, gpu_model,
 				benchmark_score, avg_rating, reliability, status, last_heartbeat)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
@@ -113,7 +119,9 @@ func (r *PostgresRegistry) BulkSeed(ctx context.Context, nodes []types.Node) ([]
 		if err != nil {
 			return nil, fmt.Errorf("insert node %s: %w", n.ID, err)
 		}
-		ids = append(ids, n.ID)
+		if affected, _ := res.RowsAffected(); affected > 0 {
+			ids = append(ids, n.ID)
+		}
 	}
 
 	return ids, tx.Commit()
