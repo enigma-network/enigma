@@ -49,12 +49,13 @@ func NewServer(db *sql.DB, reg registry.RegistryStore, led ledger.Ledger, ps pub
 	mux.HandleFunc("PUT /api/v1/nodes/{id}/suspend", adminAuth(nodesH.suspend))
 	mux.HandleFunc("PUT /api/v1/nodes/{id}/resume", adminAuth(nodesH.resume))
 
-	adminH := &adminHandler{db: db}
+	adminH := &adminHandler{db: db, registry: reg}
 	mux.HandleFunc("GET /api/v1/admin/stats", adminAuth(adminH.stats))
 	mux.HandleFunc("GET /api/v1/admin/nodes", adminAuth(adminH.nodes))
 	mux.HandleFunc("GET /api/v1/admin/jobs", adminAuth(adminH.jobs))
 	mux.HandleFunc("GET /api/v1/admin/ledger", adminAuth(adminH.ledger))
 	mux.HandleFunc("GET /api/v1/admin/instances", adminAuth(adminH.instances))
+	mux.HandleFunc("POST /api/v1/admin/nodes/seed", adminAuth(adminH.bulkSeed))
 
 	return &Server{mux: mux, db: db, hub: hub}
 }

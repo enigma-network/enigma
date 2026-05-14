@@ -4,13 +4,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"enigma/internal/instancetracker"
+	"enigma/internal/registry"
+	"enigma/internal/types"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 type adminHandler struct {
-	db *sql.DB
+	db       *sql.DB
+	registry registry.RegistryStore
 }
 
 func (h *adminHandler) stats(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +147,64 @@ func (h *adminHandler) jobs(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jobs)
+}
+
+func (h *adminHandler) bulkSeed(w http.ResponseWriter, r *http.Request) {
+	var inputs []struct {
+		Address        string   `json:"address"`
+		Backend        string   `json:"backend"`
+		Models         []string `json:"models"`
+		GPUVRAMMb      int      `json:"gpu_vram_mb"`
+		GPUModel       string   `json:"gpu_model"`
+		BenchmarkScore float64  `json:"benchmark_score"`
+		AvgRating      float64  `json:"avg_rating"`
+		Reliability    float64  `json:"reliability"`
+		Status         string   `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&inputs); err != nil || len(inputs) == 0 {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	nodes := make([]types.Node, len(inputs))
+	for i, inp := range inputs {
+		status := types.NodeStatus(inp.Status)
+		if status == "" {
+			status = types.NodeStatusOnline
+		}
+		backend := types.Backend(inp.Backend)
+		if backend == "" {
+			backend = types.BackendOllama
+		}
+		models := inp.Models
+		if len(models) == 0 {
+			models = []string{"gemma3:4b"}
+		}
+		nodes[i] = types.Node{
+			ID:             uuid.NewString(),
+			Address:        inp.Address,
+			Backend:        backend,
+			Models:         models,
+			GPUVRAMMb:      inp.GPUVRAMMb,
+			GPUModel:       inp.GPUModel,
+			BenchmarkScore: inp.BenchmarkScore,
+			AvgRating:      inp.AvgRating,
+			Reliability:    inp.Reliability,
+			Status:         status,
+		}
+	}
+
+	ids, err := h.registry.BulkSeed(r.Context(), nodes)
+	if err != nil {
+		http.Error(w, "seed failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"seeded":   len(ids),
+		"node_ids": ids,
+	})
 }
 
 func (h *adminHandler) ledger(w http.ResponseWriter, r *http.Request) {
